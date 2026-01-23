@@ -152,8 +152,7 @@ export class Logger {
 // Export LOG_LEVELS for external use
 export { LOG_LEVELS, LOG_COLORS };
 
-// Export Logger class for creating app-specific instances
-export { Logger };
+// Logger class is already exported above (line 20: export class Logger)
 
 // Factory function to create a logger instance for a specific app
 export function createLogger(appName, options = {}) {

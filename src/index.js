@@ -55,8 +55,6 @@ const NRDCommon = {
   // Utils
   formatNumber: format.formatNumber,
   formatCurrency: format.formatCurrency,
-  formatDecimal: format.formatDecimal,
-  parseDecimal: format.parseDecimal,
   formatDecimalWithComma: format.formatDecimalWithComma,
   parseDecimalWithComma: format.parseDecimalWithComma,
   escapeHtml: dom.escapeHtml,

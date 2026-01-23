@@ -96,6 +96,11 @@ export function showInfo(message) {
   return showAlert('Información', message);
 }
 
+// Show warning alert
+export function showWarning(message) {
+  return showAlert('Advertencia', message);
+}
+
 // Maintain compatibility with existing code
 if (typeof window !== 'undefined') {
   window.showConfirm = showConfirm;
