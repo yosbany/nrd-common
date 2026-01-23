@@ -1,6 +1,11 @@
 // Navigation service
-// Use window.logger if available (created by the app), otherwise use console
-const logger = (typeof window !== 'undefined' && window.logger) || console;
+// Use window.logger if available (created by the app), otherwise use console with fallback methods
+let logger = (typeof window !== 'undefined' && window.logger) || console;
+// Ensure logger has all required methods (for console fallback)
+if (!logger.debug) logger.debug = logger.log || console.log;
+if (!logger.info) logger.info = logger.log || console.log;
+if (!logger.warn) logger.warn = console.warn || console.log;
+if (!logger.error) logger.error = console.error || console.log;
 
 export class NavigationService {
   constructor() {
