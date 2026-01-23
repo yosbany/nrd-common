@@ -1,5 +1,6 @@
 // Navigation service
-import { logger } from '../core/logger.js';
+// Use window.logger if available (created by the app), otherwise use console
+const logger = (typeof window !== 'undefined' && window.logger) || console;
 
 export class NavigationService {
   constructor() {

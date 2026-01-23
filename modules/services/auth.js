@@ -1,6 +1,7 @@
 // Authentication service
 // Receives nrd instance as dependency (injection pattern)
-import { logger } from '../core/logger.js';
+// Use window.logger if available (created by the app), otherwise use console
+const logger = (typeof window !== 'undefined' && window.logger) || console;
 import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner } from '../ui/index.js';
 
