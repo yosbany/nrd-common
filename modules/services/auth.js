@@ -1,12 +1,16 @@
 // Authentication service
 // Receives nrd instance as dependency (injection pattern)
-// Use window.logger if available (created by the app), otherwise use console with fallback methods
-let logger = (typeof window !== 'undefined' && window.logger) || console;
-// Ensure logger has all required methods (for console fallback)
-if (!logger.debug) logger.debug = logger.log || console.log;
-if (!logger.info) logger.info = logger.log || console.log;
-if (!logger.warn) logger.warn = console.warn || console.log;
-if (!logger.error) logger.error = console.error || console.log;
+// Get logger function that always returns the current logger (lazy evaluation)
+function getLogger() {
+  let logger = (typeof window !== 'undefined' && window.logger) || console;
+  // Ensure logger has all required methods (for console fallback)
+  if (!logger.debug) logger.debug = logger.log || console.log;
+  if (!logger.info) logger.info = logger.log || console.log;
+  if (!logger.warn) logger.warn = console.warn || console.log;
+  if (!logger.error) logger.error = console.error || console.log;
+  if (!logger.audit) logger.audit = logger.info || logger.log || console.log;
+  return logger;
+}
 import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner } from '../ui/index.js';
 
@@ -32,14 +36,14 @@ export class AuthService {
           this.hideRedirectingScreen();
           
           if (user) {
-            logger.info('User authenticated, showing app screen', { uid: user.uid, email: user.email });
+            getLogger().info('User authenticated, showing app screen', { uid: user.uid, email: user.email });
             this.showAppScreen();
           } else {
-            logger.info('User not authenticated, showing login screen');
+            getLogger().info('User not authenticated, showing login screen');
             this.showLoginScreen();
           }
         } catch (error) {
-          logger.error('Error in auth state change', error);
+          getLogger().error('Error in auth state change', error);
           this.hideRedirectingScreen();
           const loginScreen = document.getElementById('login-screen');
           const appScreen = document.getElementById('app-screen');
@@ -59,7 +63,7 @@ export class AuthService {
       this.setupLoginForm();
       this.setupProfileHandlers();
     } else {
-      logger.error('nrd or nrd.auth is not available');
+      getLogger().error('nrd or nrd.auth is not available');
       // Still show login screen if nrd is not available
       this.showRedirectingScreen();
       setTimeout(() => {
@@ -94,7 +98,7 @@ export class AuthService {
       const firebaseAuthKeys = keys.filter(key => key.startsWith('firebase:authUser:'));
       return firebaseAuthKeys.length > 0;
     } catch (error) {
-      logger.error('Error checking stored token', error);
+      getLogger().error('Error checking stored token', error);
       return false;
     }
   }
@@ -108,18 +112,18 @@ export class AuthService {
     const hasToken = this.hasStoredToken();
     
     if (hasToken) {
-      logger.debug('Stored token found, waiting for auth state change');
+      getLogger().debug('Stored token found, waiting for auth state change');
       // Wait a bit for session to restore
       setTimeout(() => {
         if (!this.authCheckComplete) {
           // If still not authenticated after timeout, show login
-          logger.info('Token found but authentication not restored, showing login');
+          getLogger().info('Token found but authentication not restored, showing login');
           this.hideRedirectingScreen();
           this.showLoginScreen();
         }
       }, 2000); // 2 second timeout
     } else {
-      logger.debug('No stored token found, showing login immediately');
+      getLogger().debug('No stored token found, showing login immediately');
       // No token, show login immediately
       setTimeout(() => {
         this.hideRedirectingScreen();
@@ -130,35 +134,52 @@ export class AuthService {
 
   // Show login screen
   showLoginScreen() {
-    logger.debug('Showing login screen');
+    getLogger().debug('Showing login screen');
     try {
       const loginScreen = document.getElementById('login-screen');
       const appScreen = document.getElementById('app-screen');
       if (loginScreen) loginScreen.classList.remove('hidden');
       if (appScreen) appScreen.classList.add('hidden');
     } catch (error) {
-      logger.error('Error showing login screen', error);
+      getLogger().error('Error showing login screen', error);
     }
   }
 
   // Show app screen
   showAppScreen() {
-    logger.debug('Showing app screen');
+    getLogger().debug('Showing app screen');
     try {
       const loginScreen = document.getElementById('login-screen');
       const appScreen = document.getElementById('app-screen');
+      const redirectingScreen = document.getElementById('redirecting-screen');
+      
+      // Hide login and redirecting screens
       if (loginScreen) loginScreen.classList.add('hidden');
-      if (appScreen) appScreen.classList.remove('hidden');
+      if (redirectingScreen) redirectingScreen.classList.add('hidden');
+      
+      // Show app screen
+      if (appScreen) {
+        appScreen.classList.remove('hidden');
+        getLogger().debug('App screen shown successfully');
+      } else {
+        getLogger().error('App screen element not found');
+      }
       
       // Initialize default view after showing app screen
+      // Wait a bit longer to ensure DOM is ready
       setTimeout(() => {
         if (typeof window.switchView === 'function') {
-          logger.debug('Switching to default view: dashboard');
+          getLogger().debug('Switching to default view: dashboard');
           window.switchView('dashboard');
+        } else if (window.navigationService) {
+          getLogger().debug('Using navigationService to switch to dashboard');
+          window.navigationService.switchView('dashboard');
+        } else {
+          getLogger().warn('switchView function and navigationService not available');
         }
-      }, 100);
+      }, 200);
     } catch (error) {
-      logger.error('Error showing app screen', error);
+      getLogger().error('Error showing app screen', error);
     }
   }
 
@@ -174,16 +195,16 @@ export class AuthService {
           const errorDiv = document.getElementById('login-error');
 
           if (!email || !password) {
-            logger.warn('Login attempt with empty fields');
+            getLogger().warn('Login attempt with empty fields');
             if (errorDiv) errorDiv.textContent = 'Por favor complete todos los campos';
             return;
           }
 
-          logger.info('Attempting user login', { email });
+          getLogger().info('Attempting user login', { email });
           if (errorDiv) errorDiv.textContent = '';
           
           if (!this.nrd || !this.nrd.auth) {
-            logger.error('nrd or nrd.auth is not available');
+            getLogger().error('nrd or nrd.auth is not available');
             if (errorDiv) errorDiv.textContent = 'Error: Servicio no disponible';
             return;
           }
@@ -192,12 +213,12 @@ export class AuthService {
 
           const userCredential = await this.nrd.auth.signIn(email, password);
           const user = userCredential.user;
-          logger.audit('USER_LOGIN', { email, uid: user.uid, timestamp: Date.now() });
-          logger.info('User login successful', { uid: user.uid, email });
+          getLogger().audit('USER_LOGIN', { email, uid: user.uid, timestamp: Date.now() });
+          getLogger().info('User login successful', { uid: user.uid, email });
           hideSpinner();
         } catch (error) {
           hideSpinner();
-          logger.error('Login failed', error);
+          getLogger().error('Login failed', error);
           const errorDiv = document.getElementById('login-error');
           if (errorDiv) {
             errorDiv.textContent = error.message || 'Error al iniciar sesión';
@@ -231,22 +252,22 @@ export class AuthService {
       profileLogoutBtn.addEventListener('click', async () => {
         try {
           const user = this.getCurrentUser();
-          logger.info('Attempting user logout', { uid: user?.uid, email: user?.email });
+          getLogger().info('Attempting user logout', { uid: user?.uid, email: user?.email });
           this.closeProfileModal();
           
           if (!this.nrd || !this.nrd.auth) {
-            logger.error('nrd or nrd.auth is not available');
+            getLogger().error('nrd or nrd.auth is not available');
             return;
           }
           
           showSpinner('Cerrando sesión...');
           await this.nrd.auth.signOut();
-          logger.audit('USER_LOGOUT', { uid: user?.uid, email: user?.email, timestamp: Date.now() });
-          logger.info('User logout successful');
+          getLogger().audit('USER_LOGOUT', { uid: user?.uid, email: user?.email, timestamp: Date.now() });
+          getLogger().info('User logout successful');
           hideSpinner();
         } catch (error) {
           hideSpinner();
-          logger.error('Logout failed', error);
+          getLogger().error('Logout failed', error);
         }
       });
     }
@@ -254,22 +275,22 @@ export class AuthService {
 
   // Show profile modal
   showProfileModal() {
-    logger.debug('Showing profile modal');
+    getLogger().debug('Showing profile modal');
     const modal = document.getElementById('profile-modal');
     const content = document.getElementById('profile-modal-content');
     
     if (!modal || !content) {
-      logger.warn('Profile modal elements not found');
+      getLogger().warn('Profile modal elements not found');
       return;
     }
     
     const user = this.getCurrentUser();
     if (!user) {
-      logger.warn('No user found when showing profile modal');
+      getLogger().warn('No user found when showing profile modal');
       return;
     }
     
-    logger.debug('Displaying user profile data', { uid: user.uid, email: user.email });
+    getLogger().debug('Displaying user profile data', { uid: user.uid, email: user.email });
     
     let userDataHtml = `
       <div class="space-y-3 sm:space-y-4">
@@ -288,16 +309,16 @@ export class AuthService {
     
     content.innerHTML = userDataHtml;
     modal.classList.remove('hidden');
-    logger.debug('Profile modal shown');
+    getLogger().debug('Profile modal shown');
   }
 
   // Close profile modal
   closeProfileModal() {
-    logger.debug('Closing profile modal');
+    getLogger().debug('Closing profile modal');
     const modal = document.getElementById('profile-modal');
     if (modal) {
       modal.classList.add('hidden');
-      logger.debug('Profile modal closed');
+      getLogger().debug('Profile modal closed');
     }
   }
 
