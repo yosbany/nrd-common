@@ -1,11 +1,15 @@
 // Navigation service
-// Use window.logger if available (created by the app), otherwise use console with fallback methods
-let logger = (typeof window !== 'undefined' && window.logger) || console;
-// Ensure logger has all required methods (for console fallback)
-if (!logger.debug) logger.debug = logger.log || console.log;
-if (!logger.info) logger.info = logger.log || console.log;
-if (!logger.warn) logger.warn = console.warn || console.log;
-if (!logger.error) logger.error = console.error || console.log;
+// Get logger function that always returns the current logger (lazy evaluation)
+function getLogger() {
+  let logger = (typeof window !== 'undefined' && window.logger) || console;
+  // Ensure logger has all required methods (for console fallback)
+  if (!logger.debug) logger.debug = logger.log || console.log;
+  if (!logger.info) logger.info = logger.log || console.log;
+  if (!logger.warn) logger.warn = console.warn || console.log;
+  if (!logger.error) logger.error = console.error || console.log;
+  if (!logger.audit) logger.audit = logger.info || logger.log || console.log;
+  return logger;
+}
 
 export class NavigationService {
   constructor() {
@@ -23,11 +27,11 @@ export class NavigationService {
   switchView(viewName) {
     // Prevent duplicate loading
     if (this.currentView === viewName) {
-      logger.debug('View already active, skipping', { viewName });
+      getLogger().debug('View already active, skipping', { viewName });
       return;
     }
     
-    logger.info('Switching view', { from: this.currentView, to: viewName });
+    getLogger().info('Switching view', { from: this.currentView, to: viewName });
     this.currentView = viewName;
 
     // Hide all views
@@ -42,9 +46,9 @@ export class NavigationService {
     const selectedView = document.getElementById(`${viewName}-view`);
     if (selectedView) {
       selectedView.classList.remove('hidden');
-      logger.debug('View shown', { viewName });
+      getLogger().debug('View shown', { viewName });
     } else {
-      logger.warn('View element not found', { viewName });
+      getLogger().warn('View element not found', { viewName });
     }
 
     // Update nav buttons
@@ -57,11 +61,11 @@ export class NavigationService {
       activeBtn.classList.remove('border-transparent', 'text-gray-600');
       activeBtn.classList.add('border-red-600', 'text-red-600', 'bg-red-50', 'font-medium');
     } else {
-      logger.warn('Active nav button not found', { viewName });
+      getLogger().warn('Active nav button not found', { viewName });
     }
 
     // Load data for the view
-    logger.debug('Loading view data', { viewName });
+    getLogger().debug('Loading view data', { viewName });
     const handler = this.viewHandlers.get(viewName);
     if (handler) {
       handler();
@@ -82,12 +86,12 @@ export class NavigationService {
       }
     }
     
-    logger.debug('View switched successfully', { viewName });
+    getLogger().debug('View switched successfully', { viewName });
   }
 
   // Setup nav button handlers
   setupNavButtons() {
-    logger.debug('Setting up nav button handlers');
+    getLogger().debug('Setting up nav button handlers');
     document.querySelectorAll('.nav-btn').forEach(btn => {
       // Remove existing listeners by cloning
       const newBtn = btn.cloneNode(true);
@@ -95,11 +99,11 @@ export class NavigationService {
       
       newBtn.addEventListener('click', () => {
         const view = newBtn.dataset.view;
-        logger.debug('Nav button clicked', { view });
+        getLogger().debug('Nav button clicked', { view });
         this.switchView(view);
       });
     });
-    logger.debug('Nav button handlers attached');
+    getLogger().debug('Nav button handlers attached');
   }
 
   // Get current view
