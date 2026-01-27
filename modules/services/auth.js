@@ -13,6 +13,7 @@ function getLogger() {
 }
 import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner } from '../ui/index.js';
+import { initializeAppHeader } from '../ui/header.js';
 
 export class AuthService {
   constructor(nrd) {
@@ -61,7 +62,9 @@ export class AuthService {
       
       // Setup login form handler
       this.setupLoginForm();
-      this.setupProfileHandlers();
+      
+      // Initialize app header automatically (will setup profile handlers internally)
+      this.initializeHeader();
     } else {
       getLogger().error('nrd or nrd.auth is not available');
       // Still show login screen if nrd is not available
@@ -166,18 +169,31 @@ export class AuthService {
       }
       
       // Initialize default view after showing app screen
-      // Wait a bit longer to ensure DOM is ready
+      // Wait a bit longer to ensure DOM is ready and app.js has initialized
       setTimeout(() => {
-        if (typeof window.switchView === 'function') {
-          getLogger().debug('Switching to default view: dashboard');
-          window.switchView('dashboard');
-        } else if (window.navigationService) {
-          getLogger().debug('Using navigationService to switch to dashboard');
+        getLogger().debug('Attempting to switch to default view: dashboard');
+        
+        // Try multiple methods to switch view
+        if (window.navigationService && typeof window.navigationService.switchView === 'function') {
+          getLogger().debug('Switching to default view: dashboard (via navigationService)');
           window.navigationService.switchView('dashboard');
+        } else if (typeof window.switchView === 'function') {
+          getLogger().debug('Switching to default view: dashboard (via window.switchView)');
+          window.switchView('dashboard');
         } else {
-          getLogger().warn('switchView function and navigationService not available');
+          getLogger().warn('switchView function and navigationService not available yet, will retry');
+          // Retry after a longer delay
+          setTimeout(() => {
+            if (window.navigationService && typeof window.navigationService.switchView === 'function') {
+              getLogger().debug('Retrying switch to dashboard view');
+              window.navigationService.switchView('dashboard');
+            } else if (typeof window.switchView === 'function') {
+              getLogger().debug('Retrying switch to dashboard view (via window.switchView)');
+              window.switchView('dashboard');
+            }
+          }, 1000);
         }
-      }, 200);
+      }, 500);
     } catch (error) {
       getLogger().error('Error showing app screen', error);
     }
@@ -230,10 +246,14 @@ export class AuthService {
 
   // Setup profile handlers
   setupProfileHandlers() {
-    // Profile button handler
+    // Profile button handler - remove existing listeners first to avoid duplicates
     const profileBtn = document.getElementById('profile-btn');
     if (profileBtn) {
-      profileBtn.addEventListener('click', () => {
+      // Clone and replace to remove all event listeners
+      const newProfileBtn = profileBtn.cloneNode(true);
+      profileBtn.parentNode.replaceChild(newProfileBtn, profileBtn);
+      
+      newProfileBtn.addEventListener('click', () => {
         this.showProfileModal();
       });
     }
@@ -319,6 +339,25 @@ export class AuthService {
     if (modal) {
       modal.classList.add('hidden');
       getLogger().debug('Profile modal closed');
+    }
+  }
+
+  // Initialize header
+  initializeHeader() {
+    // Wait for DOM to be ready
+    const initHeader = () => {
+      initializeAppHeader();
+      // Setup profile handlers after header is created
+      // Use setTimeout to ensure header is fully inserted in DOM
+      setTimeout(() => {
+        this.setupProfileHandlers();
+      }, 100);
+    };
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHeader);
+    } else {
+      initHeader();
     }
   }
 

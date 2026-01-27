@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NRD Common - Librería de funcionalidades comunes para aplicaciones NRD">
+  <title>NRD Common</title>
+  <!-- Tailwind CSS via CDN -->
+  <script>
+    // Suppress Tailwind CDN production warning
+    (function() {
+      if (console.warn) {
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && 
+              (args[0].includes('cdn.tailwindcss.com should not be used in production') ||
+               args[0].includes('cdn.tailwindcss.com'))) {
+            return;
+          }
+          originalWarn.apply(console, args);
+        };
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.logger = window.logger || console;
+  </script>
+  <meta name="theme-color" content="#dc2626">
+</head>
+<body class="bg-white text-black font-sans antialiased">
+  <!-- Main App Screen -->
+  <div id="app-screen" class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-red-600 border-b border-red-700 px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center sticky top-0 z-10">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded flex items-center justify-center">
+          <span class="text-red-600 font-bold text-sm sm:text-base">NRD</span>
+        </div>
+        <h1 class="text-lg sm:text-xl font-light tracking-tight text-white">NRD Common</h1>
+      </div>
+    </header>
+
+    <main class="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
+      <div class="mb-4 sm:mb-6">
+        <h2 class="text-lg sm:text-xl font-light tracking-tight text-gray-800 mb-2">Funcionalidades Disponibles</h2>
+        <p class="text-sm sm:text-base text-gray-600">Librería de componentes y utilidades comunes para aplicaciones NRD</p>
+      </div>
+
+      <!-- Core -->
+      <section class="mb-6">
+        <h3 class="text-base sm:text-lg font-light text-gray-800 mb-3 border-b border-gray-200 pb-2">Core</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">Logger</h4>
+            <p class="text-xs text-gray-600">Sistema de logging estandarizado</p>
+            <code class="text-xs text-gray-500">NRDCommon.Logger</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">LOG_LEVELS</h4>
+            <p class="text-xs text-gray-600">Niveles de log disponibles</p>
+            <code class="text-xs text-gray-500">NRDCommon.LOG_LEVELS</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">createLogger</h4>
+            <p class="text-xs text-gray-600">Factory para crear loggers</p>
+            <code class="text-xs text-gray-500">NRDCommon.createLogger</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">initializeNRD</h4>
+            <p class="text-xs text-gray-600">Inicializa NRD Data Access</p>
+            <code class="text-xs text-gray-500">NRDCommon.initializeNRD</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">waitForGlobal</h4>
+            <p class="text-xs text-gray-600">Espera por variable global</p>
+            <code class="text-xs text-gray-500">NRDCommon.waitForGlobal</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">waitForAllScripts</h4>
+            <p class="text-xs text-gray-600">Espera por scripts</p>
+            <code class="text-xs text-gray-500">NRDCommon.waitForAllScripts</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- UI -->
+      <section class="mb-6">
+        <h3 class="text-base sm:text-lg font-light text-gray-800 mb-3 border-b border-gray-200 pb-2">UI</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showAlert</h4>
+            <p class="text-xs text-gray-600">Muestra alerta</p>
+            <code class="text-xs text-gray-500">NRDCommon.showAlert</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showConfirm</h4>
+            <p class="text-xs text-gray-600">Muestra confirmación</p>
+            <code class="text-xs text-gray-500">NRDCommon.showConfirm</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showError</h4>
+            <p class="text-xs text-gray-600">Muestra error</p>
+            <code class="text-xs text-gray-500">NRDCommon.showError</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showSuccess</h4>
+            <p class="text-xs text-gray-600">Muestra éxito</p>
+            <code class="text-xs text-gray-500">NRDCommon.showSuccess</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showInfo</h4>
+            <p class="text-xs text-gray-600">Muestra información</p>
+            <code class="text-xs text-gray-500">NRDCommon.showInfo</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showWarning</h4>
+            <p class="text-xs text-gray-600">Muestra advertencia</p>
+            <code class="text-xs text-gray-500">NRDCommon.showWarning</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">showSpinner</h4>
+            <p class="text-xs text-gray-600">Muestra spinner de carga</p>
+            <code class="text-xs text-gray-500">NRDCommon.showSpinner</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">hideSpinner</h4>
+            <p class="text-xs text-gray-600">Oculta spinner de carga</p>
+            <code class="text-xs text-gray-500">NRDCommon.hideSpinner</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">initializeAppHeader</h4>
+            <p class="text-xs text-gray-600">Inicializa header automáticamente</p>
+            <code class="text-xs text-gray-500">NRDCommon.initializeAppHeader</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Utils -->
+      <section class="mb-6">
+        <h3 class="text-base sm:text-lg font-light text-gray-800 mb-3 border-b border-gray-200 pb-2">Utils</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">formatNumber</h4>
+            <p class="text-xs text-gray-600">Formatea números</p>
+            <code class="text-xs text-gray-500">NRDCommon.formatNumber</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">formatCurrency</h4>
+            <p class="text-xs text-gray-600">Formatea moneda</p>
+            <code class="text-xs text-gray-500">NRDCommon.formatCurrency</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">formatDecimalWithComma</h4>
+            <p class="text-xs text-gray-600">Formatea decimal con coma</p>
+            <code class="text-xs text-gray-500">NRDCommon.formatDecimalWithComma</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">parseDecimalWithComma</h4>
+            <p class="text-xs text-gray-600">Parsea decimal con coma</p>
+            <code class="text-xs text-gray-500">NRDCommon.parseDecimalWithComma</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">escapeHtml</h4>
+            <p class="text-xs text-gray-600">Escapa HTML</p>
+            <code class="text-xs text-gray-500">NRDCommon.escapeHtml</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">formatDate</h4>
+            <p class="text-xs text-gray-600">Formatea fecha</p>
+            <code class="text-xs text-gray-500">NRDCommon.formatDate</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">getMonthName</h4>
+            <p class="text-xs text-gray-600">Obtiene nombre del mes</p>
+            <code class="text-xs text-gray-500">NRDCommon.getMonthName</code>
+          </div>
+          <div class="border border-gray-200 p-3">
+            <h4 class="font-medium text-sm mb-1">isEmployeeActiveInYear</h4>
+            <p class="text-xs text-gray-600">Verifica empleado activo en año</p>
+            <code class="text-xs text-gray-500">NRDCommon.isEmployeeActiveInYear</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services -->
+      <section class="mb-6">
+        <h3 class="text-base sm:text-lg font-light text-gray-800 mb-3 border-b border-gray-200 pb-2">Services</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="border border-gray-200 p-4">
+            <h4 class="font-medium text-sm mb-2">AuthService</h4>
+            <p class="text-xs text-gray-600 mb-2">Servicio de autenticación</p>
+            <code class="text-xs text-gray-500 block mb-2">new NRDCommon.AuthService(nrd)</code>
+            <p class="text-xs text-gray-500">Maneja login, logout, modal de perfil</p>
+          </div>
+          <div class="border border-gray-200 p-4">
+            <h4 class="font-medium text-sm mb-2">NavigationService</h4>
+            <p class="text-xs text-gray-600 mb-2">Servicio de navegación</p>
+            <code class="text-xs text-gray-500 block mb-2">new NRDCommon.NavigationService()</code>
+            <p class="text-xs text-gray-500">Maneja cambio de vistas y botones de navegación</p>
+          </div>
+          <div class="border border-gray-200 p-4">
+            <h4 class="font-medium text-sm mb-2">waitForNRD</h4>
+            <p class="text-xs text-gray-600 mb-2">Espera por instancia NRD</p>
+            <code class="text-xs text-gray-500 block mb-2">NRDCommon.waitForNRD()</code>
+            <p class="text-xs text-gray-500">Retorna Promise con instancia nrd</p>
+          </div>
+          <div class="border border-gray-200 p-4">
+            <h4 class="font-medium text-sm mb-2">waitForServices</h4>
+            <p class="text-xs text-gray-600 mb-2">Espera por servicios específicos</p>
+            <code class="text-xs text-gray-500 block mb-2">NRDCommon.waitForServices(['employees'])</code>
+            <p class="text-xs text-gray-500">Espera por servicios específicos de NRD</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Usage Example -->
+      <section class="mb-6">
+        <h3 class="text-base sm:text-lg font-light text-gray-800 mb-3 border-b border-gray-200 pb-2">Ejemplo de Uso</h3>
+        <div class="bg-gray-50 border border-gray-200 p-4 rounded">
+          <pre class="text-xs overflow-x-auto"><code>&lt;!-- Incluir desde CDN --&gt;
+&lt;script src="https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  // Crear logger
+  window.logger = new NRDCommon.Logger('MiApp');
+  
+  // Inicializar NRD
+  await NRDCommon.initializeNRD();
+  
+  // Crear AuthService
+  const authService = new NRDCommon.AuthService(window.nrd);
+  
+  // Usar utilidades
+  const formatted = NRDCommon.formatCurrency(1234.56);
+  NRDCommon.showSuccess('Éxito', 'Operación completada');
+&lt;/script&gt;</code></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -7,6 +7,7 @@ import * as config from '../modules/core/config.js';
 import * as appInit from '../modules/core/app-init.js';
 import * as modal from '../modules/ui/modal.js';
 import * as spinner from '../modules/ui/spinner.js';
+import * as header from '../modules/ui/header.js';
 import * as format from '../modules/utils/format.js';
 import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
@@ -20,6 +21,7 @@ export * from '../modules/core/config.js';
 export * from '../modules/core/app-init.js';
 export * from '../modules/ui/modal.js';
 export * from '../modules/ui/spinner.js';
+export * from '../modules/ui/header.js';
 export * from '../modules/utils/format.js';
 export * from '../modules/utils/dom.js';
 export * from '../modules/utils/date.js';
@@ -51,6 +53,9 @@ const NRDCommon = {
   showWarning: modal.showWarning,
   showSpinner: spinner.showSpinner,
   hideSpinner: spinner.hideSpinner,
+  createAppHeader: header.createAppHeader,
+  setupInstallButton: header.setupInstallButton,
+  initializeAppHeader: header.initializeAppHeader,
   
   // Utils
   formatNumber: format.formatNumber,
@@ -62,7 +67,6 @@ const NRDCommon = {
   createElement: dom.createElement,
   getMonthName: date.getMonthName,
   formatDate: date.formatDate,
-  isEmployeeActiveInYear: date.isEmployeeActiveInYear,
   
   // Services
   AuthService,

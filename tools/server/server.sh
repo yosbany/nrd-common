@@ -1,87 +1,46 @@
 #!/bin/bash
 
-# Script genérico para iniciar/detener servidor HTTP local para cualquier proyecto NRD
-# Uso: ./server.sh [proyecto] [puerto]
-# Ejemplo: ./server.sh nrd-rrhh 8006
-
-# Obtener parámetros
-PROJECT_NAME=${1:-""}
-PORT=${2:-8006}
+# Script para iniciar/detener servidor HTTP local para todos los proyectos NRD
+# Funciona como toggle: si está corriendo, lo detiene; si no está corriendo, lo inicia
+# Uso: ./server.sh [puerto]
+# Ejemplo: ./server.sh 80
 
 # Directorio base (nrd-system)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECTS_DIR="$(dirname "$COMMON_DIR")"
 
-# Si no se especifica proyecto, mostrar menú
-if [ -z "$PROJECT_NAME" ]; then
-    # Intentar detectar el proyecto desde el directorio actual
-    CURRENT_DIR="$(pwd)"
-    if [[ "$CURRENT_DIR" == *"nrd-"* ]] && [[ "$(basename "$CURRENT_DIR")" == nrd-* ]]; then
-        PROJECT_NAME=$(basename "$CURRENT_DIR")
-    else
-        # Mostrar menú de selección
-        echo "📦 Selecciona un proyecto NRD:"
-        echo ""
-        
-        # Detectar todos los proyectos disponibles
-        PROJECTS=()
-        INDEX=1
-        declare -A PROJECT_MAP
-        
-        # Ordenar los proyectos alfabéticamente
-        while IFS= read -r dir; do
-            if [ -d "$dir" ]; then
-                PROJECT_NAME_FOUND=$(basename "$dir")
-                PROJECTS+=("$PROJECT_NAME_FOUND")
-                PROJECT_MAP["$INDEX"]="$PROJECT_NAME_FOUND"
-                echo "   $INDEX) $PROJECT_NAME_FOUND"
-                ((INDEX++))
+# Verificar si el primer argumento es "stop"
+if [ "$1" = "stop" ]; then
+    # Modo stop: detener servidor en puerto especificado o buscar en todos los puertos comunes
+    STOP_PORT=${2:-""}
+    if [ -z "$STOP_PORT" ]; then
+        # Buscar en puertos comunes
+        for port in 80 8006 8007 8008 8009 8010 8011 8012 8013; do
+            if lsof -ti:$port > /dev/null 2>&1; then
+                PID=$(lsof -ti:$port 2>/dev/null)
+                if [ ! -z "$PID" ]; then
+                    echo "🛑 Deteniendo servidor en puerto $port (PID: $PID)..."
+                    kill $PID 2>/dev/null
+                    sleep 0.5
+                    if lsof -ti:$port > /dev/null 2>&1; then
+                        kill -9 $PID 2>/dev/null
+                        sleep 0.5
+                    fi
+                    if ! lsof -ti:$port > /dev/null 2>&1; then
+                        echo "✅ Servidor detenido en puerto $port"
+                    fi
+                fi
             fi
-        done < <(find "$PROJECTS_DIR" -maxdepth 1 -type d -name "nrd-*" | sort)
-        
-        if [ $INDEX -eq 1 ]; then
-            echo "❌ No se encontraron proyectos NRD en $PROJECTS_DIR"
-            exit 1
-        fi
-        
-        echo "   $INDEX) Abrir todos los proyectos"
-        echo "   0) Cancelar"
-        echo ""
-        read -p "Selecciona una opción [1-$INDEX, 0 para cancelar]: " SELECTION
-        
-        if [ "$SELECTION" = "0" ] || [ -z "$SELECTION" ]; then
-            echo "❌ Operación cancelada"
-            exit 0
-        elif [ "$SELECTION" = "$INDEX" ]; then
-            # Abrir todos los proyectos
-            echo ""
-            echo "🚀 Abriendo todos los proyectos..."
-            "$SCRIPT_DIR/start-all.sh"
-            exit 0
-        elif [ -n "${PROJECT_MAP[$SELECTION]}" ]; then
-            PROJECT_NAME="${PROJECT_MAP[$SELECTION]}"
-            echo ""
-            echo "✅ Proyecto seleccionado: $PROJECT_NAME"
-        else
-            echo "❌ Opción inválida"
-            exit 1
-        fi
+        done
+        exit 0
+    else
+        PORT=$STOP_PORT
+        # Continuar con la lógica de stop_server más abajo
     fi
-fi
-
-# Verificar que se tiene un proyecto válido
-if [ -z "$PROJECT_NAME" ]; then
-    echo "❌ Error: No se especificó un proyecto válido"
-    exit 1
-fi
-
-PROJECT_ROOT="$PROJECTS_DIR/$PROJECT_NAME"
-
-# Verificar que el proyecto existe
-if [ ! -d "$PROJECT_ROOT" ]; then
-    echo "❌ Error: Proyecto '$PROJECT_NAME' no encontrado en $PROJECTS_DIR"
-    exit 1
+else
+    # Obtener puerto (por defecto 80)
+    PORT=${1:-80}
 fi
 
 # Función para verificar si el puerto está en uso
@@ -89,82 +48,147 @@ check_port() {
     lsof -ti:$PORT > /dev/null 2>&1
 }
 
-# Función para iniciar el servidor
-start_server() {
-    if check_port; then
-        echo "⚠️  El servidor ya está corriendo en el puerto $PORT"
-        echo "   Accede a: http://localhost:$PORT/$PROJECT_NAME/"
-        return 1
-    fi
-    
-    echo "🚀 Iniciando servidor HTTP para $PROJECT_NAME en el puerto $PORT..."
-    echo "   Directorio base: $PROJECTS_DIR"
-    echo "   Proyecto: $PROJECT_ROOT"
-    
-    # Actualizar versión antes de iniciar el servidor (si existe)
-    UPDATE_VERSION_SCRIPT="$PROJECT_ROOT/tools/update-version/update-version.py"
-    if [ -f "$UPDATE_VERSION_SCRIPT" ]; then
-        echo "📝 Actualizando versión..."
-        python3 "$UPDATE_VERSION_SCRIPT" "$PROJECT_NAME" 2>/dev/null || python3 "$UPDATE_VERSION_SCRIPT" 2>/dev/null || true
-    fi
-    
-    # Ejecutar el servidor Python con el script que maneja el path del proyecto
-    SERVER_SCRIPT="$SCRIPT_DIR/server.py"
-    cd "$PROJECTS_DIR"
-    python3 "$SERVER_SCRIPT" "$PROJECT_NAME" "$PORT" > /dev/null 2>&1 &
-    SERVER_PID=$!
-    echo "✅ Servidor iniciado (PID: $SERVER_PID)"
-    echo "   Accede a: http://localhost:$PORT/$PROJECT_NAME/"
-    echo "   Para detener: kill $SERVER_PID o ./server.sh stop $PROJECT_NAME $PORT"
-    
-    # Esperar un momento para que el servidor esté listo
-    sleep 1
-    
-    # El navegador se abre desde server.py para evitar duplicados
-    echo "🌐 El navegador se abrirá automáticamente..."
-}
-
 # Función para detener el servidor
 stop_server() {
     if ! check_port; then
         echo "ℹ️  El servidor no está corriendo en el puerto $PORT"
-        return 1
+        return 0  # No es un error si no está corriendo
     fi
     
     # Buscar proceso por puerto
     PID=$(lsof -ti:$PORT 2>/dev/null)
     if [ ! -z "$PID" ]; then
-        kill $PID
-        echo "🛑 Servidor detenido (PID: $PID)"
+        echo "🛑 Deteniendo servidor (PID: $PID)..."
+        kill $PID 2>/dev/null
+        # Esperar a que el proceso termine
+        sleep 1
+        # Verificar si aún está corriendo y forzar kill si es necesario
+        if check_port; then
+            echo "   Forzando detención del proceso..."
+            kill -9 $PID 2>/dev/null
+            sleep 1
+        fi
+        if check_port; then
+            echo "⚠️  No se pudo detener el servidor completamente"
+            return 1
+        else
+            echo "✅ Servidor detenido"
+            return 0
+        fi
     else
-        echo "ℹ️  No se encontró el proceso del servidor"
+        echo "ℹ️  No se encontró el proceso del servidor en el puerto $PORT"
+        return 1
     fi
 }
 
-# Lógica principal
+# Función para iniciar el servidor
+start_server() {
+    # Si el puerto está en uso, detener el servidor anterior primero
+    if check_port; then
+        echo "⚠️  El puerto $PORT ya está en uso, deteniendo servidor anterior..."
+        # Usar la función stop_server que ya existe
+        if ! stop_server; then
+            echo "❌ Error: No se pudo detener el servidor anterior"
+            return 1
+        fi
+        # Esperar un momento adicional para asegurar que el puerto se libere
+        sleep 2
+        # Verificar nuevamente
+        if check_port; then
+            echo "❌ Error: El puerto $PORT aún está en uso después de detener el servidor"
+            echo "   Intenta detener manualmente: ./server.sh stop $PORT"
+            return 1
+        fi
+        echo "✅ Puerto $PORT liberado, continuando con el inicio..."
+    fi
+    
+    echo "🚀 Iniciando servidor HTTP para todos los proyectos NRD en el puerto $PORT..."
+    echo "   Directorio base: $PROJECTS_DIR"
+    
+    # Actualizar versión de todos los proyectos antes de iniciar (si existe)
+    echo "📝 Actualizando versiones de proyectos..."
+    for project_dir in "$PROJECTS_DIR"/nrd-*; do
+        if [ -d "$project_dir" ] && [ -f "$project_dir/index.html" ]; then
+            project_name=$(basename "$project_dir")
+            UPDATE_VERSION_SCRIPT="$project_dir/tools/update-version/update-version.py"
+            if [ -f "$UPDATE_VERSION_SCRIPT" ]; then
+                python3 "$UPDATE_VERSION_SCRIPT" "$project_name" 2>/dev/null || python3 "$UPDATE_VERSION_SCRIPT" 2>/dev/null || true
+            fi
+        fi
+    done
+    
+    # Ejecutar el servidor Python
+    SERVER_SCRIPT="$SCRIPT_DIR/server.py"
+    cd "$PROJECTS_DIR"
+    
+    # Intentar iniciar el servidor y capturar errores
+    python3 "$SERVER_SCRIPT" "$PORT" > /tmp/nrd-server.log 2>&1 &
+    SERVER_PID=$!
+    
+    # Esperar un momento para verificar que el servidor se inició correctamente
+    sleep 2
+    
+    # Verificar si el proceso sigue corriendo
+    if ps -p $SERVER_PID > /dev/null 2>&1; then
+        if check_port; then
+        echo "✅ Servidor iniciado (PID: $SERVER_PID)"
+        echo "   Accede a: http://localhost:$PORT/"
+        echo "   Proyectos disponibles:"
+        
+        # Listar proyectos disponibles
+        for project_dir in "$PROJECTS_DIR"/nrd-*; do
+            if [ -d "$project_dir" ] && [ -f "$project_dir/index.html" ]; then
+                project_name=$(basename "$project_dir")
+                echo "      - http://localhost:$PORT/$project_name/"
+            fi
+        done
+        
+            echo "   Para detener: ejecuta este script nuevamente"
+        else
+            echo "❌ Error: El servidor se inició pero el puerto $PORT no está en uso"
+            echo "   Revisa los logs: /tmp/nrd-server.log"
+            kill $SERVER_PID 2>/dev/null
+            return 1
+        fi
+    else
+        echo "❌ Error: No se pudo iniciar el servidor"
+        echo "   Revisa los logs: /tmp/nrd-server.log"
+        if [ -f /tmp/nrd-server.log ]; then
+            echo "   Últimas líneas del log:"
+            tail -5 /tmp/nrd-server.log | sed 's/^/      /'
+        fi
+        return 1
+    fi
+}
+
+# Lógica principal: toggle (solo si no se pasó "stop" como argumento)
 if [ "$1" = "stop" ]; then
-    # Modo stop: ./server.sh stop [proyecto] [puerto]
-    PROJECT_NAME=$2
-    PORT=${3:-8006}
-    if [ -z "$PROJECT_NAME" ]; then
-        echo "❌ Error: Debes especificar el proyecto para detener"
-        echo "Uso: ./server.sh stop [proyecto] [puerto]"
-        exit 1
+    # Si ya se manejó "stop" sin puerto, ya se salió arriba
+    # Si llegamos aquí, es porque hay un puerto específico
+    if [ -n "$2" ]; then
+        # Modo stop con puerto específico
+        PORT=$2
+        stop_server
     fi
-    PROJECT_ROOT="$PROJECTS_DIR/$PROJECT_NAME"
-    if [ ! -d "$PROJECT_ROOT" ]; then
-        echo "❌ Error: Proyecto '$PROJECT_NAME' no encontrado en $PROJECTS_DIR"
-        exit 1
+    # Si no hay segundo argumento, ya se manejó arriba y se salió
+elif [ -z "$1" ] || [[ "$1" =~ ^[0-9]+$ ]]; then
+    # Modo toggle normal (sin argumentos o con número de puerto)
+    # Verificar si el puerto está en uso
+    if check_port; then
+        # Servidor está corriendo, detenerlo
+        echo "🛑 Servidor detectado en puerto $PORT, deteniendo..."
+        stop_server
+        if [ $? -eq 0 ]; then
+            echo "✅ Servidor detenido exitosamente"
+        fi
+    else
+        # Servidor no está corriendo, iniciarlo (siempre con actualización de versiones)
+        start_server
     fi
-    stop_server
-elif [ -n "$PROJECT_NAME" ] && check_port; then
-    # Si se especificó un proyecto y el puerto está en uso, detener
-    stop_server
-elif [ -n "$PROJECT_NAME" ]; then
-    # Si se especificó un proyecto, iniciar
-    start_server
 else
-    # No se especificó proyecto, ya se mostró el menú arriba
-    # Si llegamos aquí, el usuario canceló o seleccionó "abrir todos"
-    exit 0
+    echo "❌ Error: Argumento inválido '$1'"
+    echo "   Uso: ./server.sh [puerto]"
+    echo "   Ejemplo: ./server.sh 80"
+    echo "   Para detener: ./server.sh stop [puerto]"
+    exit 1
 fi

@@ -34,11 +34,21 @@ export class NavigationService {
     getLogger().info('Switching view', { from: this.currentView, to: viewName });
     this.currentView = viewName;
 
+    // Ensure app-screen is visible
+    const appScreen = document.getElementById('app-screen');
+    if (appScreen && appScreen.classList.contains('hidden')) {
+      getLogger().warn('App screen was hidden, showing it now');
+      appScreen.classList.remove('hidden');
+    }
+
     // Hide all views
     this.views.forEach(view => {
       const viewElement = document.getElementById(`${view}-view`);
       if (viewElement) {
         viewElement.classList.add('hidden');
+        getLogger().debug('Hiding view', { view });
+      } else {
+        getLogger().warn('View element not found for hiding', { view });
       }
     });
 
@@ -46,9 +56,9 @@ export class NavigationService {
     const selectedView = document.getElementById(`${viewName}-view`);
     if (selectedView) {
       selectedView.classList.remove('hidden');
-      getLogger().debug('View shown', { viewName });
+      getLogger().info('View shown successfully', { viewName, elementId: `${viewName}-view` });
     } else {
-      getLogger().warn('View element not found', { viewName });
+      getLogger().error('View element not found', { viewName, elementId: `${viewName}-view`, availableViews: this.views });
     }
 
     // Update nav buttons

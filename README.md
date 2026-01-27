@@ -14,7 +14,6 @@ nrd-common/
 │   └── services/      # Servicios comunes (auth, navigation, data-loader)
 ├── tools/             # Herramientas comunes
 │   ├── server/        # Servidores HTTP
-│   ├── generate-icons/ # Generador de iconos
 │   └── update-version/ # Actualizador de versión
 ├── sync-common.sh     # Script para sincronizar a proyectos
 └── README.md
