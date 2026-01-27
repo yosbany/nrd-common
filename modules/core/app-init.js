@@ -162,6 +162,17 @@ export async function initializeNRD() {
     window.nrd = new NRDDataAccess();
     console.log('NRD Data Access initialized successfully');
     
+    // Log available services for debugging
+    if (window.nrd) {
+      const availableServices = Object.keys(window.nrd).filter(key => 
+        typeof window.nrd[key] === 'object' && 
+        window.nrd[key] !== null && 
+        typeof window.nrd[key].getAll === 'function'
+      );
+      console.log('Available NRD services:', availableServices);
+      console.log('measurementUnits available:', !!window.nrd.measurementUnits);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error initializing NRD Data Access:', error);
