@@ -12,10 +12,27 @@ function getLogger() {
 }
 
 export class NavigationService {
-  constructor() {
+  constructor(views = null) {
     this.currentView = null;
-    this.views = ['dashboard', 'payroll-items'];
+    // If views are provided, use them; otherwise try to auto-detect from DOM
+    if (views && Array.isArray(views)) {
+      this.views = views;
+    } else {
+      // Auto-detect views from DOM elements with id ending in '-view'
+      this.views = this.detectViewsFromDOM();
+    }
     this.viewHandlers = new Map();
+  }
+  
+  // Auto-detect views from DOM
+  detectViewsFromDOM() {
+    const viewElements = document.querySelectorAll('[id$="-view"]');
+    const detectedViews = Array.from(viewElements).map(el => {
+      const id = el.id;
+      return id.replace('-view', '');
+    });
+    getLogger().debug('Auto-detected views from DOM', { views: detectedViews });
+    return detectedViews.length > 0 ? detectedViews : ['dashboard', 'payroll-items']; // Fallback
   }
 
   // Register a view handler
