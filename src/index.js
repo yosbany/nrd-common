@@ -11,6 +11,7 @@ import * as header from '../modules/ui/header.js';
 import * as format from '../modules/utils/format.js';
 import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
+import * as search from '../modules/utils/search.js';
 import { AuthService } from '../modules/services/auth.js';
 import { NavigationService } from '../modules/services/navigation.js';
 import * as dataLoader from '../modules/services/data-loader.js';
@@ -25,6 +26,7 @@ export * from '../modules/ui/header.js';
 export * from '../modules/utils/format.js';
 export * from '../modules/utils/dom.js';
 export * from '../modules/utils/date.js';
+export * from '../modules/utils/search.js';
 export * from '../modules/services/auth.js';
 export * from '../modules/services/navigation.js';
 export * from '../modules/services/data-loader.js';
@@ -67,6 +69,9 @@ const NRDCommon = {
   createElement: dom.createElement,
   getMonthName: date.getMonthName,
   formatDate: date.formatDate,
+  normalizeSearchText: search.normalizeSearchText,
+  matchesSearch: search.matchesSearch,
+  filterBySearch: search.filterBySearch,
   
   // Services
   AuthService,

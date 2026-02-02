@@ -2,3 +2,4 @@
 export * from './format.js';
 export * from './dom.js';
 export * from './date.js';
+export * from './search.js';
