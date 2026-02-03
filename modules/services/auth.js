@@ -27,9 +27,26 @@ export class AuthService {
 
   init() {
     if (this.nrd && this.nrd.auth) {
+      // Check current auth state immediately (before waiting for listener)
+      const currentUser = this.nrd.auth.getCurrentUser();
+      if (currentUser) {
+        getLogger().info('Current user found immediately', { uid: currentUser.uid, email: currentUser.email });
+        this.authCheckComplete = true;
+        this.currentUser = currentUser;
+        this.hideRedirectingScreen();
+        this.showAppScreen();
+      }
+      
       // Listen for auth state changes using NRD Data Access
       this.unsubscribe = this.nrd.auth.onAuthStateChanged((user) => {
         try {
+          // Skip if we already handled this user
+          if (this.authCheckComplete && this.currentUser && user && 
+              this.currentUser.uid === user.uid) {
+            getLogger().debug('Auth state change for same user, skipping');
+            return;
+          }
+          
           this.authCheckComplete = true;
           this.currentUser = user;
           
@@ -65,6 +82,23 @@ export class AuthService {
       
       // Initialize app header automatically (will setup profile handlers internally)
       this.initializeHeader();
+      
+      // Safety timeout: if auth check doesn't complete within 3 seconds, force a check
+      setTimeout(() => {
+        if (!this.authCheckComplete) {
+          getLogger().warn('Auth check timeout, forcing check');
+          const user = this.nrd.auth.getCurrentUser();
+          if (user) {
+            this.authCheckComplete = true;
+            this.currentUser = user;
+            this.hideRedirectingScreen();
+            this.showAppScreen();
+          } else {
+            this.hideRedirectingScreen();
+            this.showLoginScreen();
+          }
+        }
+      }, 3000);
     } else {
       getLogger().error('nrd or nrd.auth is not available');
       // Still show login screen if nrd is not available
@@ -108,23 +142,49 @@ export class AuthService {
 
   // Initialize auth check
   initAuthCheck() {
+    // If we already have a user, skip showing redirecting screen
+    if (this.authCheckComplete && this.currentUser) {
+      getLogger().debug('User already authenticated, skipping redirecting screen');
+      return;
+    }
+    
     // Show redirecting screen first
     this.showRedirectingScreen();
+    
+    // Check current auth state again (in case it changed since init())
+    const currentUser = this.nrd.auth.getCurrentUser();
+    if (currentUser) {
+      getLogger().info('Current user found in initAuthCheck', { uid: currentUser.uid });
+      this.authCheckComplete = true;
+      this.currentUser = currentUser;
+      this.hideRedirectingScreen();
+      this.showAppScreen();
+      return;
+    }
     
     // Check if there's a stored token
     const hasToken = this.hasStoredToken();
     
     if (hasToken) {
       getLogger().debug('Stored token found, waiting for auth state change');
-      // Wait a bit for session to restore
+      // Wait a bit for session to restore, but shorter timeout since we already checked
       setTimeout(() => {
         if (!this.authCheckComplete) {
-          // If still not authenticated after timeout, show login
-          getLogger().info('Token found but authentication not restored, showing login');
-          this.hideRedirectingScreen();
-          this.showLoginScreen();
+          // Double-check one more time before giving up
+          const user = this.nrd.auth.getCurrentUser();
+          if (user) {
+            this.authCheckComplete = true;
+            this.currentUser = user;
+            this.hideRedirectingScreen();
+            this.showAppScreen();
+          } else {
+            // If still not authenticated after timeout, show login
+            getLogger().info('Token found but authentication not restored, showing login');
+            this.hideRedirectingScreen();
+            this.showLoginScreen();
+          }
         }
-      }, 2000); // 2 second timeout
+      }, 1500); // Reduced timeout since we already checked
     } else {
       getLogger().debug('No stored token found, showing login immediately');
       // No token, show login immediately
