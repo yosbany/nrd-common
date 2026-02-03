@@ -231,27 +231,53 @@ export class AuthService {
       // Initialize default view after showing app screen
       // Wait a bit longer to ensure DOM is ready and app.js has initialized
       setTimeout(() => {
-        getLogger().debug('Attempting to switch to default view: dashboard');
+        // Check if dashboard view exists before trying to switch to it
+        const dashboardView = document.getElementById('dashboard-view');
+        const hasDashboardView = !!dashboardView;
         
-        // Try multiple methods to switch view
-        if (window.navigationService && typeof window.navigationService.switchView === 'function') {
-          getLogger().debug('Switching to default view: dashboard (via navigationService)');
-          window.navigationService.switchView('dashboard');
-        } else if (typeof window.switchView === 'function') {
-          getLogger().debug('Switching to default view: dashboard (via window.switchView)');
-          window.switchView('dashboard');
-        } else {
-          getLogger().warn('switchView function and navigationService not available yet, will retry');
-          // Retry after a longer delay
-          setTimeout(() => {
-            if (window.navigationService && typeof window.navigationService.switchView === 'function') {
-              getLogger().debug('Retrying switch to dashboard view');
+        if (hasDashboardView) {
+          getLogger().debug('Attempting to switch to default view: dashboard');
+          
+          // Try multiple methods to switch view
+          if (window.navigationService && typeof window.navigationService.switchView === 'function') {
+            getLogger().debug('Switching to default view: dashboard (via navigationService)');
+            try {
               window.navigationService.switchView('dashboard');
-            } else if (typeof window.switchView === 'function') {
-              getLogger().debug('Retrying switch to dashboard view (via window.switchView)');
-              window.switchView('dashboard');
+            } catch (error) {
+              getLogger().warn('Error switching to dashboard view', error);
             }
-          }, 1000);
+          } else if (typeof window.switchView === 'function') {
+            getLogger().debug('Switching to default view: dashboard (via window.switchView)');
+            try {
+              window.switchView('dashboard');
+            } catch (error) {
+              getLogger().warn('Error switching to dashboard view', error);
+            }
+          } else {
+            getLogger().warn('switchView function and navigationService not available yet, will retry');
+            // Retry after a longer delay
+            setTimeout(() => {
+              if (window.navigationService && typeof window.navigationService.switchView === 'function') {
+                getLogger().debug('Retrying switch to dashboard view');
+                try {
+                  window.navigationService.switchView('dashboard');
+                } catch (error) {
+                  getLogger().warn('Error retrying switch to dashboard view', error);
+                }
+              } else if (typeof window.switchView === 'function') {
+                getLogger().debug('Retrying switch to dashboard view (via window.switchView)');
+                try {
+                  window.switchView('dashboard');
+                } catch (error) {
+                  getLogger().warn('Error retrying switch to dashboard view', error);
+                }
+              }
+            }, 1000);
+          }
+        } else {
+          getLogger().debug('Dashboard view not found, letting app handle its own navigation');
+          // Don't try to switch to dashboard if it doesn't exist
+          // The app's initializeAppForUser() or similar will handle navigation
         }
       }, 500);
     } catch (error) {
