@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
 Servidor HTTP genérico para proyectos NRD
-Sirve todos los proyectos en el mismo puerto con context paths diferentes
-Uso: python3 server.py [puerto]
-Ejemplo: python3 server.py 80
+Sirve todos los proyectos en el mismo puerto con context paths diferentes.
+Incluye live reload: detecta cambios en el código y recarga la página en el navegador.
+Uso: python3 nrd-system-server.py [puerto]
+Ejemplo: python3 nrd-system-server.py 80
 Accede a: http://localhost/nrd-rrhh/, http://localhost/nrd-compras/, etc.
 """
 
@@ -12,8 +13,15 @@ import os
 import http.server
 import socketserver
 import subprocess
+import threading
+import time
 from pathlib import Path
 from urllib.parse import unquote
+
+# Extensiones a vigilar para live reload
+LIVE_RELOAD_EXTENSIONS = {'.html', '.js', '.css', '.json'}
+LIVE_RELOAD_POLL_INTERVAL = 1.0  # segundos
+LIVE_RELOAD_LAST_MTIME = [0.0]  # lista para poder mutar desde el thread
 
 # Directorio base
 script_dir = Path(__file__).parent.resolve()
@@ -32,6 +40,37 @@ for project_dir in sorted(projects_dir.glob("nrd-*")):
 if not projects:
     print("❌ No se encontraron proyectos NRD con index.html")
     sys.exit(1)
+
+
+def _live_reload_watcher():
+    """Thread que actualiza LIVE_RELOAD_LAST_MTIME con el mtime más reciente de archivos fuente."""
+    while True:
+        try:
+            latest = 0.0
+            for project_name in projects:
+                project_root = projects_dir / project_name
+                if not project_root.is_dir():
+                    continue
+                for root, _dirs, files in os.walk(project_root):
+                    for name in files:
+                        if Path(name).suffix.lower() in LIVE_RELOAD_EXTENSIONS:
+                            p = Path(root) / name
+                            try:
+                                m = p.stat().st_mtime
+                                if m > latest:
+                                    latest = m
+                            except OSError:
+                                pass
+            if latest > 0:
+                LIVE_RELOAD_LAST_MTIME[0] = latest
+        except Exception:
+            pass
+        time.sleep(LIVE_RELOAD_POLL_INTERVAL)
+
+
+# Iniciar watcher para live reload en segundo plano
+_live_reload_thread = threading.Thread(target=_live_reload_watcher, daemon=True)
+_live_reload_thread.start()
 
 # Actualizar versión de todos los proyectos antes de iniciar
 print("📝 Actualizando versiones de proyectos...")
@@ -94,6 +133,17 @@ class MultiProjectHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         return str(full_path.resolve())
     
     def do_GET(self):
+        # Endpoint para live reload (polling)
+        path_for_live = self.path.split('?', 1)[0]
+        if path_for_live == '/_nrd_live':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            body = ('{"t":%s}' % LIVE_RELOAD_LAST_MTIME[0]).encode('utf-8')
+            self.wfile.write(body)
+            return
+
         # Si el path es /, mostrar lista de proyectos
         if self.path == '/' or self.path == '':
             self.send_response(200)
@@ -162,7 +212,35 @@ class MultiProjectHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 </html>'''
             self.wfile.write(html.encode('utf-8'))
             return
-        
+
+        # Para HTML: inyectar script de live reload antes de </body>
+        path_clean = self.path.split('?', 1)[0]
+        translated = self.translate_path(path_clean)
+        if translated and os.path.isfile(translated) and translated.lower().endswith('.html'):
+            try:
+                with open(translated, 'rb') as f:
+                    content = f.read()
+                marker = b'</body>'
+                if marker in content:
+                    script = b'''<script>(function(){
+var last=0;function check(){fetch("/_nrd_live").then(function(r){return r.json();}).then(function(d){
+if(d.t&&d.t!==last){if(last>0)location.reload();last=d.t;}
+}).catch(function(){});}
+setInterval(check,1500);check();
+})();</script>'''
+                    content = content.replace(marker, script + marker, 1)
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+            except (OSError, IOError):
+                pass
+
         # Llamar al método padre para manejar otros paths
         super().do_GET()
     
@@ -193,6 +271,7 @@ try:
         for project in projects:
             print(f"      - http://localhost:{port}/{project}/")
         print(f"   Página principal: http://localhost:{port}/")
+        print(f"   Live reload: activo (cambios en .html, .js, .css, .json recargan la página)")
         print(f"   Presiona Ctrl+C para detener")
         
         # Iniciar servidor
@@ -200,8 +279,8 @@ try:
 except PermissionError as e:
     if port < 1024:
         print(f"❌ Error: Se requieren permisos de administrador para usar el puerto {port}")
-        print(f"   Ejecuta con sudo: sudo ./server.sh {port}")
-        print(f"   O usa un puerto mayor a 1024: ./server.sh 8006")
+        print(f"   Ejecuta con sudo: sudo ./restart.sh {port}")
+        print(f"   O usa un puerto mayor a 1024: ./restart.sh 8006")
     else:
         print(f"❌ Error de permisos: {e}")
     sys.exit(1)
@@ -211,8 +290,8 @@ except OSError as e:
         print(f"   Accede a: http://localhost:{port}/")
     elif "Permission denied" in str(e) or "Operation not permitted" in str(e):
         print(f"❌ Error: Se requieren permisos de administrador para usar el puerto {port}")
-        print(f"   Ejecuta con sudo: sudo ./server.sh {port}")
-        print(f"   O usa un puerto mayor a 1024: ./server.sh 8006")
+        print(f"   Ejecuta con sudo: sudo ./restart.sh {port}")
+        print(f"   O usa un puerto mayor a 1024: ./restart.sh 8006")
     else:
         print(f"❌ Error: {e}")
     sys.exit(1)

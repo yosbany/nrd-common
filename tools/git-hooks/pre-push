@@ -1,0 +1,47 @@
+#!/bin/bash
+# Hook pre-push: actualiza la versión (version.json + cache busting en index.html)
+# en todos los proyectos NRD antes de cada push, y hace commit si hubo cambios.
+# Instalar con: ./nrd-common/tools/git-hooks/install-hooks.sh
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# En nrd-system la raíz del repo es donde están nrd-rrhh, nrd-pedidos, nrd-common, etc.
+PROJECTS_DIR="$REPO_ROOT"
+
+# Solo actuar si estamos en el repo que contiene nrd-common (nrd-system)
+if [ ! -d "$PROJECTS_DIR/nrd-common" ]; then
+    exit 0
+fi
+
+echo "📝 Pre-push: actualizando versión en proyectos NRD..."
+
+for project_dir in "$PROJECTS_DIR"/nrd-*; do
+    if [ -d "$project_dir" ] && [ -f "$project_dir/index.html" ]; then
+        project_name=$(basename "$project_dir")
+        update_script="$project_dir/tools/update-version/update-version.py"
+        if [ -f "$update_script" ]; then
+            (python3 "$update_script" "$project_name" 2>/dev/null) || (python3 "$update_script" 2>/dev/null) || true
+        fi
+    fi
+done
+
+# Añadir version.json e index.html de cada proyecto nrd-* (modificados o nuevos)
+for project_dir in "$PROJECTS_DIR"/nrd-*; do
+    [ -d "$project_dir" ] || continue
+    rel_dir="${project_dir#$REPO_ROOT/}"
+    [ -f "$project_dir/version.json" ] && git add "$rel_dir/version.json" 2>/dev/null || true
+    [ -f "$project_dir/index.html" ] && git add "$rel_dir/index.html" 2>/dev/null || true
+done
+
+# Si hay algo en staging (cambios en versión), hacer commit
+if ! git diff --cached --quiet 2>/dev/null; then
+    echo "   Versión actualizada en uno o más proyectos; creando commit..."
+    if git commit -m "chore: update app version (cache busting)" --no-verify 2>/dev/null; then
+        echo "   ✅ Commit creado."
+    fi
+fi
+
+exit 0

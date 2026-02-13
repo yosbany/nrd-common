@@ -73,6 +73,12 @@ def update_version(project_name=None):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html)
     
+    # Write version.json so the client can validate against server (avoid stale cache)
+    import json
+    version_path = project_root / 'version.json'
+    with open(version_path, 'w', encoding='utf-8') as f:
+        json.dump({'v': version}, f)
+    
     print(f"✅ Version updated to: {version}")
     print(f"📝 Updated {html_path} with cache busting parameters")
 
