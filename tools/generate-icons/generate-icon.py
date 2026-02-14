@@ -2,12 +2,17 @@
 """
 Generador de iconos SVG y PNG para apps NRD (herramienta compartida).
 Genera iconos con texto sobre fondo rojo NRD.
-Uso: python3 generate-icon.py "TEXTO_DEL_ICONO" [directorio_salida]
+Uso: python3 generate-icon.py "TEXTO_DEL_ICONO" [directorio_salida] [icon_type]
 Ejemplo: python3 generate-icon.py "NRD Catálogo" assets/icons
+Ejemplo bakery: python3 generate-icon.py "Panadería|Nueva Río D'or" assets/icons bakery
+Icon types: catalog (default), bakery
 """
 
 import sys
 from pathlib import Path
+
+ICON_CATALOG = "catalog"
+ICON_BAKERY = "bakery"
 
 
 def escape_xml(text):
@@ -52,9 +57,62 @@ def split_text(text):
     return text, ""
 
 
-def generate_svg(text, size):
+def get_bakery_icon_svg(size):
+    """Genera el SVG del icono de panadería: bol con pan y vapor (estilo outline blanco)."""
+    cx = size // 2
+    # Escala y posición según tamaño
+    if size == 192:
+        scale = 1
+        icon_top = 24
+    else:
+        scale = size / 192
+        icon_top = int(24 * scale)
+    s = scale
+    sw = max(1.5, int(3 * s))  # stroke width
+    # Bol: elipse ancha y baja
+    bowl_w = int(70 * s)
+    bowl_h = int(28 * s)
+    bowl_y = icon_top + int(40 * s)
+    bowl = f'<ellipse cx="{cx}" cy="{bowl_y}" rx="{bowl_w}" ry="{bowl_h}" fill="none" stroke="#ffffff" stroke-width="{sw}"/>'
+    # Línea interior del borde del bol
+    rim_y = bowl_y - int(10 * s)
+    rim = f'<path d="M {cx - int(50 * s)} {rim_y} Q {cx} {rim_y - int(6 * s)} {cx + int(50 * s)} {rim_y}" fill="none" stroke="#ffffff" stroke-width="{sw}" stroke-linecap="round"/>'
+    # Panes: 3 formas redondeadas dentro del bol
+    b1 = f'<ellipse cx="{cx - int(22 * s)}" cy="{bowl_y - int(4 * s)}" rx="{int(14 * s)}" ry="{int(12 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}"/>'
+    b2 = f'<ellipse cx="{cx}" cy="{bowl_y - int(8 * s)}" rx="{int(16 * s)}" ry="{int(14 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}"/>'
+    b3 = f'<ellipse cx="{cx + int(20 * s)}" cy="{bowl_y - int(5 * s)}" rx="{int(12 * s)}" ry="{int(11 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}"/>'
+    # Vapor: 3 líneas onduladas
+    steam_y = bowl_y - int(35 * s)
+    steam_x1 = cx - int(25 * s)
+    steam_x2 = cx
+    steam_x3 = cx + int(25 * s)
+    steam1 = f'<path d="M {steam_x1} {steam_y + int(20 * s)} Q {steam_x1 - int(8 * s)} {steam_y} {steam_x1} {steam_y - int(15 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}" stroke-linecap="round"/>'
+    steam2 = f'<path d="M {steam_x2} {steam_y + int(22 * s)} Q {steam_x2 + int(6 * s)} {steam_y} {steam_x2} {steam_y - int(18 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}" stroke-linecap="round"/>'
+    steam3 = f'<path d="M {steam_x3} {steam_y + int(18 * s)} Q {steam_x3 + int(10 * s)} {steam_y} {steam_x3} {steam_y - int(14 * s)}" fill="none" stroke="#ffffff" stroke-width="{sw}" stroke-linecap="round"/>'
+    return f'  <g id="bakery-icon">\n    {bowl}\n    {rim}\n    {b1}\n    {b2}\n    {b3}\n    {steam1}\n    {steam2}\n    {steam3}\n  </g>'
+
+
+def get_catalog_icon_svg(size, icon_y, icon_size, icon_spacing, stroke_width):
+    """Genera el SVG del icono de catálogo (cuadrícula)."""
+    return f'''  <g opacity="0.25">
+    <rect x="{icon_y}" y="{icon_y}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
+    <rect x="{icon_y + icon_spacing}" y="{icon_y}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
+    <rect x="{icon_y}" y="{icon_y + icon_spacing}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
+    <rect x="{icon_y + icon_spacing}" y="{icon_y + icon_spacing}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
+
+    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 4}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_size // 4}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_size // 2}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+    <line x1="{icon_y + icon_size // 4}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_size // 4}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_size // 2}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+    <line x1="{icon_y + icon_spacing}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+    <line x1="{icon_y + icon_spacing + icon_size // 4}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing + icon_size // 4}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
+  </g>'''
+
+
+def generate_svg(text, size, icon_type=ICON_CATALOG):
     """Genera el código SVG para un icono con el texto proporcionado"""
     line1, line2 = split_text(text)
+    is_bakery = icon_type == ICON_BAKERY
 
     if size == 192:
         text_area_width = size * 0.90
@@ -64,12 +122,20 @@ def generate_svg(text, size):
         main_font_size = calculate_font_size(line1, text_area_width, base_font_size)
         sub_font_size = calculate_font_size(line2, text_area_width, base_sub_font_size) if line2 else 0
 
-        if line2:
-            y_main = 88
-            y_sub = 128
+        if is_bakery:
+            if line2:
+                y_main = 98
+                y_sub = 138
+            else:
+                y_main = 115
+                y_sub = 0
         else:
-            y_main = 108
-            y_sub = 0
+            if line2:
+                y_main = 88
+                y_sub = 128
+            else:
+                y_main = 108
+                y_sub = 0
 
         icon_size = 28
         icon_y = 20
@@ -82,12 +148,20 @@ def generate_svg(text, size):
         main_font_size = calculate_font_size(line1, text_area_width, base_font_size)
         sub_font_size = calculate_font_size(line2, text_area_width, base_sub_font_size) if line2 else 0
 
-        if line2:
-            y_main = 225
-            y_sub = 315
+        if is_bakery:
+            if line2:
+                y_main = 260
+                y_sub = 365
+            else:
+                y_main = 305
+                y_sub = 0
         else:
-            y_main = 275
-            y_sub = 0
+            if line2:
+                y_main = 225
+                y_sub = 315
+            else:
+                y_main = 275
+                y_sub = 0
 
         icon_size = 75
         icon_y = 50
@@ -96,8 +170,20 @@ def generate_svg(text, size):
     corner_radius = size // 8
     stroke_width = max(1, size // 192)
 
-    svg = f'''<svg width="{size}" height="{size}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
+    # Bakery: fondo rojo sólido; catalog: gradiente
+    bg_fill = '#dc2626' if is_bakery else 'url(#bgGradient)'
+    sub_color = '#ffffff' if is_bakery else '#fef08a'
+    icon_svg = get_bakery_icon_svg(size) if is_bakery else get_catalog_icon_svg(size, icon_y, icon_size, icon_spacing, stroke_width)
+
+    if is_bakery:
+        defs = f'''  <defs>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="{size // 64}" stdDeviation="{size // 128}" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+'''
+    else:
+        defs = f'''  <defs>
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#ef4444;stop-opacity:1" />
@@ -107,28 +193,19 @@ def generate_svg(text, size):
       <feDropShadow dx="0" dy="{size // 64}" stdDeviation="{size // 128}" flood-opacity="0.3"/>
     </filter>
   </defs>
+'''
 
-  <rect width="{size}" height="{size}" fill="url(#bgGradient)" rx="{corner_radius}" ry="{corner_radius}"/>
+    svg = f'''<svg width="{size}" height="{size}" xmlns="http://www.w3.org/2000/svg">
+{defs}
+  <rect width="{size}" height="{size}" fill="{bg_fill}" rx="{corner_radius}" ry="{corner_radius}"/>
 
-  <g opacity="0.25">
-    <rect x="{icon_y}" y="{icon_y}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
-    <rect x="{icon_y + icon_spacing}" y="{icon_y}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
-    <rect x="{icon_y}" y="{icon_y + icon_spacing}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
-    <rect x="{icon_y + icon_spacing}" y="{icon_y + icon_spacing}" width="{icon_size}" height="{icon_size}" fill="#ffffff" rx="{size // 48}" stroke="#ffffff" stroke-width="{stroke_width}" stroke-opacity="0.5"/>
+{icon_svg}
 
-    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 4}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_size // 4}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_size // 2}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-    <line x1="{icon_y + icon_size // 4}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_size // 4}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-    <line x1="{icon_y + icon_size // 2}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_size // 2}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-    <line x1="{icon_y + icon_spacing}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-    <line x1="{icon_y + icon_spacing + icon_size // 4}" y1="{icon_y + icon_size // 2}" x2="{icon_y + icon_spacing + icon_size // 4}" y2="{icon_y + icon_spacing}" stroke="#ffffff" stroke-width="{size // 96}" stroke-linecap="round"/>
-  </g>
-
-  <text x="{size // 2}" y="{y_main}" font-family="Arial, sans-serif" font-size="{main_font_size}" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" filter="url(#shadow)" letter-spacing="{size // 384}">{escape_xml(line1)}</text>'''
+  <text x="{size // 2}" y="{y_main}" font-family="Georgia, serif" font-size="{main_font_size}" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" filter="url(#shadow)" letter-spacing="{size // 384}">{escape_xml(line1)}</text>'''
 
     if line2 and sub_font_size > 0:
         svg += f'''
-  <text x="{size // 2}" y="{y_sub}" font-family="Arial, sans-serif" font-size="{int(sub_font_size * 1.05)}" font-weight="bold" fill="#fef08a" text-anchor="middle" dominant-baseline="middle" filter="url(#shadow)" letter-spacing="{size // 384}">{escape_xml(line2)}</text>'''
+  <text x="{size // 2}" y="{y_sub}" font-family="Georgia, serif" font-size="{int(sub_font_size * 1.05)}" font-weight="bold" fill="{sub_color}" text-anchor="middle" dominant-baseline="middle" filter="url(#shadow)" letter-spacing="{size // 384}">{escape_xml(line2)}</text>'''
 
     svg += "\n</svg>"
     return svg
@@ -158,17 +235,21 @@ def convert_svg_to_png_from_file(svg_path, png_path, size):
 def main():
     if len(sys.argv) < 2:
         print("✗ Error: Debes proporcionar el texto del icono")
-        print("   Uso: python3 generate-icon.py \"TEXTO_DEL_ICONO\" [directorio_salida]")
+        print("   Uso: python3 generate-icon.py \"TEXTO_DEL_ICONO\" [directorio_salida] [icon_type]")
         print("   Ejemplo: python3 generate-icon.py \"NRD Catálogo\" assets/icons")
+        print("   Ejemplo bakery: python3 generate-icon.py \"Panadería|Nueva Río D'or\" assets/icons bakery")
         return 1
 
     icon_text = sys.argv[1]
     output_dir = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else Path.cwd()
+    icon_type = (sys.argv[3] or ICON_CATALOG).lower() if len(sys.argv) > 3 else ICON_CATALOG
+    if icon_type not in (ICON_CATALOG, ICON_BAKERY):
+        icon_type = ICON_CATALOG
 
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Generando iconos con texto: \"{icon_text}\"")
+    print(f"Generando iconos con texto: \"{icon_text}\" (icon_type={icon_type})")
     print(f"Directorio de salida: {output_dir}")
     print()
 
@@ -176,12 +257,12 @@ def main():
     temp_dir = Path(tempfile.mkdtemp())
 
     try:
-        svg_192_content = generate_svg(icon_text, 192)
+        svg_192_content = generate_svg(icon_text, 192, icon_type)
         svg_192_path = temp_dir / "icon-192.svg"
         with open(svg_192_path, 'w') as f:
             f.write(svg_192_content)
 
-        svg_512_content = generate_svg(icon_text, 512)
+        svg_512_content = generate_svg(icon_text, 512, icon_type)
         svg_512_path = temp_dir / "icon-512.svg"
         with open(svg_512_path, 'w') as f:
             f.write(svg_512_content)

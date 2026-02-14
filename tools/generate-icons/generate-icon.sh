@@ -1,20 +1,21 @@
 #!/bin/bash
 # Generador de iconos para apps NRD (herramienta compartida en nrd-common)
-# Uso: ./generate-icon.sh "TEXTO_DEL_ICONO" [directorio_salida]
+# Uso: ./generate-icon.sh "TEXTO_DEL_ICONO" [directorio_salida] [icon_type]
 # Ejemplo desde nrd-catalogo: ../../nrd-common/tools/generate-icons/generate-icon.sh "NRD Catálogo" assets/icons
-# Ejemplo desde nrd-flujo-caja: ../../nrd-common/tools/generate-icons/generate-icon.sh "NRD Flujo de Caja" .
+# Ejemplo bakery: ../../nrd-common/tools/generate-icons/generate-icon.sh "Panadería|Nueva Río D'or" assets/icons bakery
 
 set -e
 
 if [ -z "$1" ]; then
     echo "✗ Error: Debes proporcionar el texto del icono como parámetro"
-    echo "   Uso: ./generate-icon.sh \"TEXTO_DEL_ICONO\" [directorio_salida]"
-    echo "   Ejemplo: ./generate-icon.sh \"NRD Catálogo\" assets/icons"
+    echo "   Uso: ./generate-icon.sh \"TEXTO_DEL_ICONO\" [directorio_salida] [icon_type]"
+    echo "   Icon types: catalog (default), bakery"
     exit 1
 fi
 
 ICON_TEXT="$1"
 OUTPUT_DIR="${2:-.}"
+ICON_TYPE="${3:-catalog}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -50,7 +51,7 @@ fi
 
 echo ""
 echo "Generando iconos..."
-python3 "$SCRIPT_DIR/generate-icon.py" "$ICON_TEXT" "$OUTPUT_DIR"
+python3 "$SCRIPT_DIR/generate-icon.py" "$ICON_TEXT" "$OUTPUT_DIR" "$ICON_TYPE"
 
 echo ""
 echo "✓ Iconos generados exitosamente!"
