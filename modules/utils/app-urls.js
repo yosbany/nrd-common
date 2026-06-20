@@ -20,16 +20,17 @@ export function getLibraryUrlCandidates(libKey) {
   if (isLocalDev()) {
     return [NRD_LIB_LOCAL[libKey] || '/'];
   }
-  const primary = NRD_LIB_REMOTE[libKey];
-  const fallback = NRD_LIB_REMOTE_FALLBACK[libKey];
-  return fallback && fallback !== primary ? [primary, fallback] : [primary];
+  const cdn = NRD_LIB_REMOTE_FALLBACK[libKey];
+  const custom = NRD_LIB_REMOTE[libKey];
+  // jsDelivr primero mientras common/datos no tengan DNS+HTTPS listos
+  return custom && custom !== cdn ? [cdn, custom] : [cdn];
 }
 
 export function getLibraryUrl(libKey) {
   if (isLocalDev()) {
     return NRD_LIB_LOCAL[libKey] || '/';
   }
-  return NRD_LIB_REMOTE[libKey] || '/';
+  return NRD_LIB_REMOTE_FALLBACK[libKey] || NRD_LIB_REMOTE[libKey] || '/';
 }
 
 export function getDataAccessUrl() {
