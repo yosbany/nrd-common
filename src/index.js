@@ -13,7 +13,15 @@ import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
 import * as search from '../modules/utils/search.js';
 import { AuthService } from '../modules/services/auth.js';
-import { setupAuthenticatedApp } from '../modules/services/auth-bootstrap.js';
+import {
+  setupAuthenticatedApp,
+  showLoginFallback,
+  initializeAppAuth,
+  pollInitializeAppAuth,
+  startApp,
+  flushAppStartQueue,
+  bootstrapAuthenticatedApp
+} from '../modules/services/auth-bootstrap.js';
 import { NavigationService } from '../modules/services/navigation.js';
 import * as dataLoader from '../modules/services/data-loader.js';
 
