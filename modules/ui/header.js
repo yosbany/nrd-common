@@ -2,6 +2,7 @@
 // Generates the standard header with install and profile buttons
 
 import { escapeHtml } from '../utils/dom.js';
+import { getPortalUrl } from '../utils/app-urls.js';
 
 /**
  * Create the app header HTML
@@ -98,14 +99,8 @@ export function initializeAppHeader() {
   // Setup install button
   setupInstallButton();
 
-  // Setup portal link URL based on environment
   const portalLink = document.getElementById('portal-link');
   if (portalLink) {
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname === '0.0.0.0';
-    portalLink.href = isLocalhost 
-      ? '/nrd-portal/'
-      : 'https://yosbany.github.io/nrd-portal';
+    portalLink.href = getPortalUrl();
   }
 }

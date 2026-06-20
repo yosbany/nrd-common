@@ -12,6 +12,7 @@ import * as format from '../modules/utils/format.js';
 import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
 import * as search from '../modules/utils/search.js';
+import * as appUrls from '../modules/utils/app-urls.js';
 import { AuthService } from '../modules/services/auth.js';
 import {
   setupAuthenticatedApp,
@@ -36,6 +37,7 @@ export * from '../modules/utils/format.js';
 export * from '../modules/utils/dom.js';
 export * from '../modules/utils/date.js';
 export * from '../modules/utils/search.js';
+export * from '../modules/utils/app-urls.js';
 export * from '../modules/services/auth.js';
 export * from '../modules/services/auth-bootstrap.js';
 export * from '../modules/services/navigation.js';
@@ -82,7 +84,13 @@ const NRDCommon = {
   normalizeSearchText: search.normalizeSearchText,
   matchesSearch: search.matchesSearch,
   filterBySearch: search.filterBySearch,
-  
+  isLocalDev: appUrls.isLocalDev,
+  getAppUrl: appUrls.getAppUrl,
+  getPortalUrl: appUrls.getPortalUrl,
+  NRD_LOCAL_PATHS: appUrls.NRD_LOCAL_PATHS,
+  NRD_REMOTE_URLS: appUrls.NRD_REMOTE_URLS,
+  PORTAL_APPS: appUrls.PORTAL_APPS,
+
   // Services
   AuthService,
   showLoginFallback,
