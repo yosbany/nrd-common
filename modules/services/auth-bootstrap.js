@@ -52,6 +52,8 @@ function exposeNRDGlobals() {
     showWarning: NRDCommon.showWarning,
     showSpinner: NRDCommon.showSpinner,
     hideSpinner: NRDCommon.hideSpinner,
+    resetSpinner: NRDCommon.resetSpinner,
+    withSpinner: NRDCommon.withSpinner,
     formatNumber: NRDCommon.formatNumber,
     formatCurrency: NRDCommon.formatCurrency,
     formatDecimalWithComma: NRDCommon.formatDecimalWithComma,
