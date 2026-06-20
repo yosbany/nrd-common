@@ -1,5 +1,30 @@
 // URLs de apps NRD: localhost (servidor unificado) vs producción (nrdonline.site)
 
+export const NRD_LIB_LOCAL = {
+  dataAccess: '/nrd-data-access/dist/nrd-data-access.js',
+  common: '/nrd-common/dist/nrd-common.js'
+};
+
+export const NRD_LIB_REMOTE = {
+  dataAccess: 'https://datos.nrdonline.site/dist/nrd-data-access.js',
+  common: 'https://common.nrdonline.site/dist/nrd-common.js'
+};
+
+export function getLibraryUrl(libKey) {
+  if (isLocalDev()) {
+    return NRD_LIB_LOCAL[libKey] || '/';
+  }
+  return NRD_LIB_REMOTE[libKey] || '/';
+}
+
+export function getDataAccessUrl() {
+  return getLibraryUrl('dataAccess');
+}
+
+export function getCommonLibUrl() {
+  return getLibraryUrl('common');
+}
+
 export const NRD_LOCAL_PATHS = {
   portal: '/nrd-portal/',
   pdv: '/nrd-pdv/',

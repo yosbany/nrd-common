@@ -90,6 +90,11 @@ const NRDCommon = {
   NRD_LOCAL_PATHS: appUrls.NRD_LOCAL_PATHS,
   NRD_REMOTE_URLS: appUrls.NRD_REMOTE_URLS,
   PORTAL_APPS: appUrls.PORTAL_APPS,
+  NRD_LIB_LOCAL: appUrls.NRD_LIB_LOCAL,
+  NRD_LIB_REMOTE: appUrls.NRD_LIB_REMOTE,
+  getLibraryUrl: appUrls.getLibraryUrl,
+  getDataAccessUrl: appUrls.getDataAccessUrl,
+  getCommonLibUrl: appUrls.getCommonLibUrl,
 
   // Services
   AuthService,
