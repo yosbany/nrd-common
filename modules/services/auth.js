@@ -15,14 +15,84 @@ import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner } from '../ui/index.js';
 import { initializeAppHeader } from '../ui/header.js';
 
+const AUTH_TOKEN_RESTORE_MS = 8000;
+const AUTH_SAFETY_TIMEOUT_MS = 10000;
+
 export class AuthService {
   constructor(nrd) {
     this.nrd = nrd;
     this.currentUser = null;
     this.authCheckComplete = false;
     this.unsubscribe = null;
+    this._tokenWaitTimeout = null;
+    this._safetyTimeout = null;
     
     this.init();
+  }
+
+  _clearAuthTimeouts() {
+    if (this._tokenWaitTimeout) {
+      clearTimeout(this._tokenWaitTimeout);
+      this._tokenWaitTimeout = null;
+    }
+    if (this._safetyTimeout) {
+      clearTimeout(this._safetyTimeout);
+      this._safetyTimeout = null;
+    }
+  }
+
+  _setRedirectingMessage(message) {
+    const redirectingScreen = document.getElementById('redirecting-screen');
+    if (!redirectingScreen) return;
+    const messageEl = redirectingScreen.querySelector('[data-auth-status]') ||
+      redirectingScreen.querySelector('p');
+    if (messageEl) messageEl.textContent = message;
+  }
+
+  _notifyAuthReady(user) {
+    try {
+      window.dispatchEvent(new CustomEvent('nrd-auth-ready', {
+        detail: {
+          user: user || null,
+          authenticated: !!user
+        }
+      }));
+    } catch (error) {
+      getLogger().warn('Could not dispatch nrd-auth-ready event', error);
+    }
+  }
+
+  _setLoginError(message) {
+    const errorDiv = document.getElementById('login-error');
+    if (!errorDiv) return;
+    if (message) {
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+    } else {
+      errorDiv.textContent = '';
+      errorDiv.classList.add('hidden');
+    }
+  }
+
+  _resolveAuthState(user, source) {
+    this.authCheckComplete = true;
+    this.currentUser = user;
+    this._clearAuthTimeouts();
+    this.hideRedirectingScreen();
+
+    if (user) {
+      getLogger().info('User authenticated, showing app screen', {
+        uid: user.uid,
+        email: user.email,
+        source
+      });
+      this.showAppScreen();
+    } else {
+      getLogger().info('User not authenticated, showing login screen', { source });
+      this.showLoginScreen();
+    }
+
+    this._notifyAuthReady(user);
   }
 
   init() {
@@ -31,35 +101,20 @@ export class AuthService {
       const currentUser = this.nrd.auth.getCurrentUser();
       if (currentUser) {
         getLogger().info('Current user found immediately', { uid: currentUser.uid, email: currentUser.email });
-        this.authCheckComplete = true;
-        this.currentUser = currentUser;
-        this.hideRedirectingScreen();
-        this.showAppScreen();
+        this._resolveAuthState(currentUser, 'immediate');
       }
       
       // Listen for auth state changes using NRD Data Access
       this.unsubscribe = this.nrd.auth.onAuthStateChanged((user) => {
         try {
           // Skip if we already handled this user
-          if (this.authCheckComplete && this.currentUser && user && 
+          if (this.authCheckComplete && this.currentUser && user &&
               this.currentUser.uid === user.uid) {
             getLogger().debug('Auth state change for same user, skipping');
             return;
           }
-          
-          this.authCheckComplete = true;
-          this.currentUser = user;
-          
-          // Hide redirecting screen
-          this.hideRedirectingScreen();
-          
-          if (user) {
-            getLogger().info('User authenticated, showing app screen', { uid: user.uid, email: user.email });
-            this.showAppScreen();
-          } else {
-            getLogger().info('User not authenticated, showing login screen');
-            this.showLoginScreen();
-          }
+
+          this._resolveAuthState(user, 'onAuthStateChanged');
         } catch (error) {
           getLogger().error('Error in auth state change', error);
           this.hideRedirectingScreen();
@@ -67,6 +122,7 @@ export class AuthService {
           const appScreen = document.getElementById('app-screen');
           if (loginScreen) loginScreen.classList.remove('hidden');
           if (appScreen) appScreen.classList.add('hidden');
+          this._notifyAuthReady(null);
         }
       });
       
@@ -83,22 +139,25 @@ export class AuthService {
       // Initialize app header automatically (will setup profile handlers internally)
       this.initializeHeader();
       
-      // Safety timeout: if auth check doesn't complete within 3 seconds, force a check
-      setTimeout(() => {
-        if (!this.authCheckComplete) {
-          getLogger().warn('Auth check timeout, forcing check');
-          const user = this.nrd.auth.getCurrentUser();
-          if (user) {
-            this.authCheckComplete = true;
-            this.currentUser = user;
-            this.hideRedirectingScreen();
-            this.showAppScreen();
-          } else {
-            this.hideRedirectingScreen();
-            this.showLoginScreen();
-          }
+      // Safety timeout: only force login if there is no stored SSO token still restoring
+      this._safetyTimeout = setTimeout(() => {
+        if (this.authCheckComplete) return;
+
+        getLogger().warn('Auth check safety timeout, forcing final check');
+        const user = this.nrd.auth.getCurrentUser();
+        if (user) {
+          this._resolveAuthState(user, 'safety-timeout');
+          return;
         }
-      }, 3000);
+
+        if (this.hasStoredToken()) {
+          getLogger().warn('Stored token present but auth not restored yet; keeping redirecting screen');
+          this._setRedirectingMessage('Restaurando sesión...');
+          return;
+        }
+
+        this._resolveAuthState(null, 'safety-timeout-no-token');
+      }, AUTH_SAFETY_TIMEOUT_MS);
     } else {
       getLogger().error('nrd or nrd.auth is not available');
       // Still show login screen if nrd is not available
@@ -150,15 +209,13 @@ export class AuthService {
     
     // Show redirecting screen first
     this.showRedirectingScreen();
+    this._setRedirectingMessage('Verificando sesión...');
     
     // Check current auth state again (in case it changed since init())
     const currentUser = this.nrd.auth.getCurrentUser();
     if (currentUser) {
       getLogger().info('Current user found in initAuthCheck', { uid: currentUser.uid });
-      this.authCheckComplete = true;
-      this.currentUser = currentUser;
-      this.hideRedirectingScreen();
-      this.showAppScreen();
+      this._resolveAuthState(currentUser, 'initAuthCheck-immediate');
       return;
     }
     
@@ -167,31 +224,27 @@ export class AuthService {
     
     if (hasToken) {
       getLogger().debug('Stored token found, waiting for auth state change');
-      // Wait a bit for session to restore, but shorter timeout since we already checked
-      setTimeout(() => {
-        if (!this.authCheckComplete) {
-          // Double-check one more time before giving up
-          const user = this.nrd.auth.getCurrentUser();
-          if (user) {
-            this.authCheckComplete = true;
-            this.currentUser = user;
-            this.hideRedirectingScreen();
-            this.showAppScreen();
-          } else {
-            // If still not authenticated after timeout, show login
-            getLogger().info('Token found but authentication not restored, showing login');
-            this.hideRedirectingScreen();
-            this.showLoginScreen();
-          }
+      this._setRedirectingMessage('Restaurando sesión...');
+      // Wait for Firebase SSO restore; onAuthStateChanged remains the source of truth
+      this._tokenWaitTimeout = setTimeout(() => {
+        if (this.authCheckComplete) return;
+
+        const user = this.nrd.auth.getCurrentUser();
+        if (user) {
+          this._resolveAuthState(user, 'token-wait');
+          return;
         }
-      }, 1500); // Reduced timeout since we already checked
+
+        getLogger().info('Token found but authentication not restored, showing login');
+        this._resolveAuthState(null, 'token-wait-expired');
+      }, AUTH_TOKEN_RESTORE_MS);
     } else {
       getLogger().debug('No stored token found, showing login immediately');
-      // No token, show login immediately
       setTimeout(() => {
-        this.hideRedirectingScreen();
-        this.showLoginScreen();
-      }, 300); // Small delay for smooth transition
+        if (!this.authCheckComplete) {
+          this._resolveAuthState(null, 'no-token');
+        }
+      }, 300);
     }
   }
 
@@ -248,19 +301,21 @@ export class AuthService {
 
           if (!email || !password) {
             getLogger().warn('Login attempt with empty fields');
-            if (errorDiv) errorDiv.textContent = 'Por favor complete todos los campos';
+            this._setLoginError('Por favor complete todos los campos');
             return;
           }
 
           getLogger().info('Attempting user login', { email });
-          if (errorDiv) errorDiv.textContent = '';
+          this._setLoginError('');
           
           if (!this.nrd || !this.nrd.auth) {
             getLogger().error('nrd or nrd.auth is not available');
-            if (errorDiv) errorDiv.textContent = 'Error: Servicio no disponible';
+            this._setLoginError('Error: Servicio no disponible');
             return;
           }
-          
+
+          this.showRedirectingScreen();
+          this._setRedirectingMessage('Iniciando sesión...');
           showSpinner('Iniciando sesión...');
 
           const userCredential = await this.nrd.auth.signIn(email, password);
@@ -270,11 +325,10 @@ export class AuthService {
           hideSpinner();
         } catch (error) {
           hideSpinner();
+          this.hideRedirectingScreen();
           getLogger().error('Login failed', error);
-          const errorDiv = document.getElementById('login-error');
-          if (errorDiv) {
-            errorDiv.textContent = error.message || 'Error al iniciar sesión';
-          }
+          this.showLoginScreen();
+          this._setLoginError(error.message || 'Error al iniciar sesión');
         }
       });
     }
@@ -404,6 +458,7 @@ export class AuthService {
 
   // Cleanup
   destroy() {
+    this._clearAuthTimeouts();
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
