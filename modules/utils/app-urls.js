@@ -10,6 +10,21 @@ export const NRD_LIB_REMOTE = {
   common: 'https://common.nrdonline.site/dist/nrd-common.js'
 };
 
+/** Si el dominio propio no responde (DNS/Pages pendiente), usar jsDelivr. */
+export const NRD_LIB_REMOTE_FALLBACK = {
+  dataAccess: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js',
+  common: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js'
+};
+
+export function getLibraryUrlCandidates(libKey) {
+  if (isLocalDev()) {
+    return [NRD_LIB_LOCAL[libKey] || '/'];
+  }
+  const primary = NRD_LIB_REMOTE[libKey];
+  const fallback = NRD_LIB_REMOTE_FALLBACK[libKey];
+  return fallback && fallback !== primary ? [primary, fallback] : [primary];
+}
+
 export function getLibraryUrl(libKey) {
   if (isLocalDev()) {
     return NRD_LIB_LOCAL[libKey] || '/';

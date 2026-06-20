@@ -93,8 +93,10 @@ const NRDCommon = {
   NRD_LIB_LOCAL: appUrls.NRD_LIB_LOCAL,
   NRD_LIB_REMOTE: appUrls.NRD_LIB_REMOTE,
   getLibraryUrl: appUrls.getLibraryUrl,
+  getLibraryUrlCandidates: appUrls.getLibraryUrlCandidates,
   getDataAccessUrl: appUrls.getDataAccessUrl,
   getCommonLibUrl: appUrls.getCommonLibUrl,
+  NRD_LIB_REMOTE_FALLBACK: appUrls.NRD_LIB_REMOTE_FALLBACK,
 
   // Services
   AuthService,
