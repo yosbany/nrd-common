@@ -53,6 +53,7 @@ function exposeNRDGlobals() {
     showSpinner: NRDCommon.showSpinner,
     hideSpinner: NRDCommon.hideSpinner,
     resetSpinner: NRDCommon.resetSpinner,
+    setSpinnerMessage: NRDCommon.setSpinnerMessage,
     withSpinner: NRDCommon.withSpinner,
     formatNumber: NRDCommon.formatNumber,
     formatCurrency: NRDCommon.formatCurrency,

@@ -69,6 +69,7 @@ const NRDCommon = {
   hideSpinner: spinner.hideSpinner,
   resetSpinner: spinner.resetSpinner,
   ensureSpinner: spinner.ensureSpinner,
+  setSpinnerMessage: spinner.setSpinnerMessage,
   withSpinner: spinner.withSpinner,
   createAppHeader: header.createAppHeader,
   setupInstallButton: header.setupInstallButton,

@@ -3,7 +3,7 @@
 
 const SPINNER_ID = 'loading-spinner';
 const STYLE_ID = 'nrd-spinner-styles';
-const SPINNER_VERSION = '3';
+const SPINNER_VERSION = '4';
 
 /** @type {Array<string|null|undefined>} */
 const requestStack = [];
@@ -22,18 +22,8 @@ const SPINNER_STYLES = `
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes nrd-spinner-scale-in {
-  from { opacity: 0; transform: scale(0.96) translateY(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.nrd-spinner-orbit {
-  animation: nrd-spinner-spin 0.85s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
-}
-#${SPINNER_ID}.nrd-spinner-visible {
-  animation: nrd-spinner-fade-in 0.18s ease-out;
-}
-.nrd-spinner-panel {
-  animation: nrd-spinner-scale-in 0.22s ease-out;
+.nrd-spinner-mark {
+  animation: nrd-spinner-spin 0.9s linear infinite;
 }
 #nrd-spinner-message.nrd-spinner-message-hidden {
   display: none;
@@ -48,15 +38,11 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-function getSpinnerPanelMarkup() {
+function getSpinnerMarkup() {
   return `
-    <div class="nrd-spinner-panel bg-white border border-gray-200 shadow-[0_20px_50px_rgba(15,23,42,0.16)] px-8 py-7 flex flex-col items-center gap-5 min-w-[200px] max-w-[min(90vw,340px)]">
-      <div class="relative w-12 h-12" aria-hidden="true">
-        <div class="absolute inset-0 border-[3px] border-gray-100"></div>
-        <div class="absolute inset-0 border-[3px] border-transparent border-t-red-600 nrd-spinner-orbit"></div>
-        <div class="absolute inset-[10px] border-2 border-gray-100"></div>
-      </div>
-      <p id="nrd-spinner-message" class="nrd-spinner-message-hidden text-sm text-gray-700 font-light tracking-wide text-center leading-snug"></p>
+    <div class="flex flex-col items-center gap-4">
+      <div class="nrd-spinner-mark w-12 h-12 border-4 border-gray-200 border-t-red-600" aria-hidden="true"></div>
+      <p id="nrd-spinner-message" class="nrd-spinner-message-hidden text-sm text-gray-600 font-light tracking-wide text-center"></p>
     </div>
   `;
 }
@@ -137,15 +123,27 @@ export function ensureSpinner() {
   spinner.setAttribute('aria-busy', 'false');
   spinner.setAttribute('aria-label', 'Cargando');
   spinner.className =
-    'fixed inset-0 z-[2147483646] hidden items-center justify-center bg-slate-900/45 backdrop-blur-[3px] p-4';
-  spinner.innerHTML = getSpinnerPanelMarkup();
+    'fixed inset-0 z-[2147483646] hidden flex-col items-center justify-center bg-white p-4';
+  spinner.innerHTML = getSpinnerMarkup();
 
   return spinner;
 }
 
+/** Update message of the active spinner without adding a stack layer. */
+export function setSpinnerMessage(message) {
+  ensureSpinner();
+  if (requestStack.length === 0) {
+    requestStack.push(message);
+    syncSpinnerVisibility();
+    return;
+  }
+  requestStack[requestStack.length - 1] = message;
+  applyMessage(message);
+}
+
 /**
  * Show the global spinner.
- * @param {string} [message] - Optional context (e.g. "Guardando..."). Omit for spinner only.
+ * @param {string} [message] - Optional context (e.g. "Guardando..."). Omit for animation only.
  */
 export function showSpinner(message) {
   ensureSpinner();
@@ -187,5 +185,6 @@ if (typeof window !== 'undefined') {
   window.showSpinner = showSpinner;
   window.hideSpinner = hideSpinner;
   window.resetSpinner = resetSpinner;
+  window.setSpinnerMessage = setSpinnerMessage;
   window.withSpinner = withSpinner;
 }

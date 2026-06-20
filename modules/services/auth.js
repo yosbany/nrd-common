@@ -12,7 +12,7 @@ function getLogger() {
   return logger;
 }
 import { escapeHtml } from '../utils/dom.js';
-import { showSpinner, hideSpinner } from '../ui/index.js';
+import { showSpinner, hideSpinner, resetSpinner } from '../ui/index.js';
 import { initializeAppHeader } from '../ui/header.js';
 
 const AUTH_TOKEN_RESTORE_MS = 8000;
@@ -42,6 +42,11 @@ export class AuthService {
   }
 
   _setRedirectingMessage(message) {
+    const setMessage = window.setSpinnerMessage || window.NRDCommon?.setSpinnerMessage;
+    if (typeof setMessage === 'function') {
+      setMessage(message);
+      return;
+    }
     const redirectingScreen = document.getElementById('redirecting-screen');
     if (!redirectingScreen) return;
     const messageEl = redirectingScreen.querySelector('[data-auth-status]') ||
@@ -171,11 +176,11 @@ export class AuthService {
 
   // Show redirecting screen
   showRedirectingScreen() {
-    const redirectingScreen = document.getElementById('redirecting-screen');
     const loginScreen = document.getElementById('login-screen');
     const appScreen = document.getElementById('app-screen');
-    
-    if (redirectingScreen) redirectingScreen.classList.remove('hidden');
+    const redirectingScreen = document.getElementById('redirecting-screen');
+
+    if (redirectingScreen) redirectingScreen.classList.add('hidden');
     if (loginScreen) loginScreen.classList.add('hidden');
     if (appScreen) appScreen.classList.add('hidden');
   }
@@ -184,6 +189,7 @@ export class AuthService {
   hideRedirectingScreen() {
     const redirectingScreen = document.getElementById('redirecting-screen');
     if (redirectingScreen) redirectingScreen.classList.add('hidden');
+    resetSpinner();
   }
 
   // Check for stored token in localStorage
@@ -316,15 +322,12 @@ export class AuthService {
 
           this.showRedirectingScreen();
           this._setRedirectingMessage('Iniciando sesión...');
-          showSpinner('Iniciando sesión...');
 
           const userCredential = await this.nrd.auth.signIn(email, password);
           const user = userCredential.user;
           getLogger().audit('USER_LOGIN', { email, uid: user.uid, timestamp: Date.now() });
           getLogger().info('User login successful', { uid: user.uid, email });
-          hideSpinner();
         } catch (error) {
-          hideSpinner();
           this.hideRedirectingScreen();
           getLogger().error('Login failed', error);
           this.showLoginScreen();
