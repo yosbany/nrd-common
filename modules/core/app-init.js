@@ -104,18 +104,34 @@ export function waitForGlobals(names, timeout = INIT_TIMEOUT) {
  */
 export async function verifyModules() {
   const missing = [];
-  
+
   for (const module of REQUIRED_MODULES) {
-    const available = await waitForGlobals(module, 5000);
+    const available = await waitForGlobals(module, INIT_TIMEOUT);
     if (!available) {
       missing.push(module);
     }
   }
-  
+
   return {
     success: missing.length === 0,
     missing: missing
   };
+}
+
+async function waitForNrdReady() {
+  if (typeof window.nrd !== 'undefined') return true;
+
+  const deadline = Date.now() + INIT_TIMEOUT;
+  while (Date.now() < deadline) {
+    if (typeof window.nrd !== 'undefined') return true;
+    await new Promise((resolve) => setTimeout(resolve, MODULE_CHECK_INTERVAL));
+  }
+
+  if (typeof window.NRDDataAccess !== 'undefined') {
+    return initializeNRD();
+  }
+
+  return typeof window.nrd !== 'undefined';
 }
 
 /**
@@ -198,7 +214,17 @@ export async function initializeApplication() {
     if (!scriptsLoaded) {
       console.warn('Scripts may not have loaded completely, continuing anyway...');
     }
-    
+
+    const nrdReady = await waitForNrdReady();
+    if (!nrdReady) {
+      showInitError(
+        'Error de Carga',
+        'No se pudo inicializar NRD Data Access',
+        'Módulos faltantes: window.nrd. Por favor, recarga la página.'
+      );
+      return;
+    }
+
     // Verify all required modules are available
     console.log('Verifying required modules...');
     const verification = await verifyModules();
