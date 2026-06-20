@@ -42,11 +42,25 @@ export class AuthService {
   }
 
   _setRedirectingMessage(message) {
-    const setMessage = window.setSpinnerMessage || window.NRDCommon?.setSpinnerMessage;
-    if (typeof setMessage === 'function') {
-      setMessage(message);
-      return;
+    try {
+      const ensure = window.NRDCommon?.ensureSpinner || window.ensureSpinner;
+      if (typeof ensure === 'function') ensure();
+
+      const setMessage = window.setSpinnerMessage || window.NRDCommon?.setSpinnerMessage;
+      if (typeof setMessage === 'function') {
+        setMessage(message);
+        return;
+      }
+
+      const show = window.showSpinner || window.NRDCommon?.showSpinner;
+      if (typeof show === 'function') {
+        show(message);
+        return;
+      }
+    } catch (error) {
+      getLogger().warn('Could not show spinner message', error);
     }
+
     const redirectingScreen = document.getElementById('redirecting-screen');
     if (!redirectingScreen) return;
     const messageEl = redirectingScreen.querySelector('[data-auth-status]') ||
