@@ -141,10 +141,14 @@ export class NavigationService {
 
 // Maintain compatibility with existing code
 if (typeof window !== 'undefined') {
-  // Export function for backward compatibility
+  const previousSwitchView = typeof window.switchView === 'function' ? window.switchView : null;
   window.switchView = function(viewName) {
     if (window.navigationService) {
       window.navigationService.switchView(viewName);
+      return;
+    }
+    if (previousSwitchView) {
+      previousSwitchView(viewName);
     }
   };
 }
