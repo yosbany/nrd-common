@@ -17,7 +17,6 @@ PROJECTS=(
   "nrd-compras"
   "nrd-control-cajas"
   "nrd-costos"
-  "nrd-flujo-caja"
   "nrd-pedidos"
   "nrd-portal"
   "nrd-productos"
