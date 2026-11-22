@@ -23,6 +23,7 @@ import {
   flushAppStartQueue,
   bootstrapAuthenticatedApp
 } from '../modules/services/auth-bootstrap.js';
+import * as sso from '../modules/services/sso.js';
 import { NavigationService } from '../modules/services/navigation.js';
 import * as dataLoader from '../modules/services/data-loader.js';
 
@@ -40,6 +41,7 @@ export * from '../modules/utils/search.js';
 export * from '../modules/utils/app-urls.js';
 export * from '../modules/services/auth.js';
 export * from '../modules/services/auth-bootstrap.js';
+export * from '../modules/services/sso.js';
 export * from '../modules/services/navigation.js';
 export * from '../modules/services/data-loader.js';
 
@@ -112,6 +114,11 @@ const NRDCommon = {
   setupAuthenticatedApp,
   bootstrapAuthenticatedApp,
   NavigationService,
+  isSsoEnabled: sso.isSsoEnabled,
+  readSsoMarker: sso.readSsoMarker,
+  publishSsoSession: sso.publishSsoSession,
+  fetchSsoCustomToken: sso.fetchSsoCustomToken,
+  endSsoSession: sso.endSsoSession,
   waitForNRD: dataLoader.waitForNRD,
   waitForServices: dataLoader.waitForServices,
 };

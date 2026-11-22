@@ -14,6 +14,14 @@ function getLogger() {
 import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner, resetSpinner } from '../ui/index.js';
 import { initializeAppHeader } from '../ui/header.js';
+import {
+  isSsoEnabled,
+  readSsoMarker,
+  SSO_LOGGED_OUT,
+  publishSsoSession,
+  fetchSsoCustomToken,
+  endSsoSession
+} from './sso.js';
 
 const AUTH_TOKEN_RESTORE_MS = 8000;
 const AUTH_SAFETY_TIMEOUT_MS = 10000;
@@ -93,7 +101,69 @@ export class AuthService {
     }
   }
 
+  /**
+   * SSO reconciliation (cookie read only, no network).
+   * Returns true when the local session was dropped because SSO says logged out / other account.
+   */
+  _reconcileSso(user) {
+    if (!user || !isSsoEnabled() || user.isAnonymous) return false;
+    // Fresh login in this app: marker is stale until publishSsoSession finishes
+    if (this._ssoPublishing) return false;
+    const marker = readSsoMarker();
+    if (marker === SSO_LOGGED_OUT || (marker && marker !== user.uid)) {
+      getLogger().info('SSO: sesión local descartada', { reason: marker === SSO_LOGGED_OUT ? 'logout' : 'otra-cuenta' });
+      this.nrd.auth.signOut().catch((error) => getLogger().warn('SSO: signOut local falló', error));
+      return true;
+    }
+    return false;
+  }
+
+  /** Signs in with the shared SSO session, if any. Resolves true when Firebase accepted the token. */
+  async _trySsoSignIn() {
+    if (!isSsoEnabled()) return false;
+    const marker = readSsoMarker();
+    if (!marker || marker === SSO_LOGGED_OUT) return false;
+    if (this._ssoInFlight) return this._ssoInFlight;
+
+    this._ssoInFlight = (async () => {
+      try {
+        const token = await fetchSsoCustomToken();
+        if (!token) return false;
+        await this.nrd.auth.signInWithCustomToken(token);
+        getLogger().info('SSO: sesión restaurada desde otra app');
+        return true;
+      } catch (error) {
+        getLogger().warn('SSO: signInWithCustomToken falló', error);
+        return false;
+      } finally {
+        this._ssoInFlight = null;
+      }
+    })();
+    return this._ssoInFlight;
+  }
+
+  /** Re-check SSO state when the tab regains focus (logout/login done in another app). */
+  _setupSsoSync() {
+    if (!isSsoEnabled() || this._ssoSyncBound) return;
+    this._ssoSyncBound = true;
+    const sync = () => {
+      if (document.visibilityState === 'hidden' || !this.authCheckComplete) return;
+      const user = this.nrd.auth.getCurrentUser();
+      if (user) {
+        this._reconcileSso(user);
+      } else {
+        this._trySsoSignIn();
+      }
+    };
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('focus', sync);
+  }
+
   _resolveAuthState(user, source) {
+    if (user && this._reconcileSso(user)) {
+      // Local sign-out in progress; onAuthStateChanged(null) will resolve to login.
+      return;
+    }
     this.authCheckComplete = true;
     this.currentUser = user;
     this._clearAuthTimeouts();
@@ -154,6 +224,7 @@ export class AuthService {
       
       // Setup login form handler
       this.setupLoginForm();
+      this._setupSsoSync();
       
       // Initialize app header automatically (will setup profile handlers internally)
       this.initializeHeader();
@@ -241,6 +312,18 @@ export class AuthService {
     
     // Check if there's a stored token
     const hasToken = this.hasStoredToken();
+
+    // No local Firebase session: try the shared SSO session before showing login
+    if (!hasToken && isSsoEnabled()) {
+      const marker = readSsoMarker();
+      if (marker && marker !== SSO_LOGGED_OUT) {
+        this._setRedirectingMessage('Iniciando sesión...');
+        this._trySsoSignIn().then((ok) => {
+          if (!ok && !this.authCheckComplete) this._resolveAuthState(null, 'sso-failed');
+        });
+        return;
+      }
+    }
     
     if (hasToken) {
       getLogger().debug('Stored token found, waiting for auth state change');
@@ -337,9 +420,18 @@ export class AuthService {
           this.showRedirectingScreen();
           this._setRedirectingMessage('Iniciando sesión...');
 
-          const userCredential = await this.nrd.auth.signIn(email, password);
+          this._ssoPublishing = true;
+          let userCredential;
+          try {
+            userCredential = await this.nrd.auth.signIn(email, password);
+          } catch (signInError) {
+            this._ssoPublishing = false;
+            throw signInError;
+          }
           const user = userCredential.user;
           getLogger().audit('USER_LOGIN', { email, uid: user.uid, timestamp: Date.now() });
+          // Publish session to the other NRD apps (best effort, does not block login)
+          publishSsoSession(user).finally(() => { this._ssoPublishing = false; });
           getLogger().info('User login successful', { uid: user.uid, email });
         } catch (error) {
           this.hideRedirectingScreen();
@@ -388,6 +480,7 @@ export class AuthService {
           }
           
           showSpinner('Cerrando sesión...');
+          await endSsoSession();
           await this.nrd.auth.signOut();
           getLogger().audit('USER_LOGOUT', { uid: user?.uid, email: user?.email, timestamp: Date.now() });
           getLogger().info('User logout successful');
