@@ -14,6 +14,7 @@ function getLogger() {
 import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner, resetSpinner } from '../ui/index.js';
 import { initializeAppHeader } from '../ui/header.js';
+import { getPortalUrl } from '../utils/app-urls.js';
 import {
   isSsoEnabled,
   readSsoMarker,
@@ -445,6 +446,10 @@ export class AuthService {
 
   // Setup profile handlers
   setupProfileHandlers() {
+    // El enlace al portal viene escrito como '/nrd-portal/' (solo válido en localhost): resolverlo por entorno
+    const portalLink = document.getElementById('portal-link');
+    if (portalLink) portalLink.href = getPortalUrl();
+
     // Profile button handler - remove existing listeners first to avoid duplicates
     const profileBtn = document.getElementById('profile-btn');
     if (profileBtn) {
