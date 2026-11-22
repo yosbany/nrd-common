@@ -12,8 +12,8 @@ export const NRD_LIB_REMOTE = {
 
 /** Si el dominio propio no responde (DNS/Pages pendiente), usar jsDelivr. */
 export const NRD_LIB_REMOTE_FALLBACK = {
-  dataAccess: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@main/dist/nrd-data-access.js',
-  common: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@main/dist/nrd-common.js'
+  dataAccess: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-data-access@773ad47/dist/nrd-data-access.js',
+  common: 'https://cdn.jsdelivr.net/gh/yosbany/nrd-common@c765377/dist/nrd-common.js'
 };
 
 export function getLibraryUrlCandidates(libKey) {
