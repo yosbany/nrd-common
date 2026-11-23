@@ -8,6 +8,7 @@ import * as appInit from '../modules/core/app-init.js';
 import * as modal from '../modules/ui/modal.js';
 import * as spinner from '../modules/ui/spinner.js';
 import * as header from '../modules/ui/header.js';
+import * as theme from '../modules/ui/theme.js';
 import * as format from '../modules/utils/format.js';
 import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
@@ -34,6 +35,7 @@ export * from '../modules/core/app-init.js';
 export * from '../modules/ui/modal.js';
 export * from '../modules/ui/spinner.js';
 export * from '../modules/ui/header.js';
+export * from '../modules/ui/theme.js';
 export * from '../modules/utils/format.js';
 export * from '../modules/utils/dom.js';
 export * from '../modules/utils/date.js';
@@ -76,6 +78,8 @@ const NRDCommon = {
   createAppHeader: header.createAppHeader,
   setupInstallButton: header.setupInstallButton,
   initializeAppHeader: header.initializeAppHeader,
+  applyBrandTheme: theme.applyBrandTheme,
+  BRAND: theme.BRAND,
   
   // Utils
   formatNumber: format.formatNumber,
@@ -124,3 +128,6 @@ const NRDCommon = {
 };
 
 export default NRDCommon;
+
+// Identidad de marca v6: se aplica a toda app que cargue nrd-common (idempotente)
+theme.applyBrandTheme();
