@@ -122,6 +122,28 @@ export class AuthService {
     return false;
   }
 
+  /** True si hay marcador SSO activo y aún no se intentó canjearlo en esta carga. */
+  _shouldWaitForSso() {
+    if (!isSsoEnabled() || this._ssoAttempted) return false;
+    const marker = readSsoMarker();
+    return !!marker && marker !== SSO_LOGGED_OUT;
+  }
+
+  /** Canjea el marcador SSO y resuelve el estado (login o app) cuando termina. */
+  _ensureSsoResolution() {
+    if (this._ssoResolving) return;
+    this._ssoResolving = true;
+    this._trySsoSignIn().then((ok) => {
+      this._ssoAttempted = true;
+      this._ssoResolving = false;
+      if (!ok) {
+        const user = this.nrd.auth.getCurrentUser();
+        this._resolveAuthState(user, 'sso-done');
+      }
+      // Si ok: onAuthStateChanged dispara _resolveAuthState con el usuario restaurado.
+    });
+  }
+
   /** Signs in with the shared SSO session, if any. Resolves true when Firebase accepted the token. */
   async _trySsoSignIn() {
     if (!isSsoEnabled()) return false;
@@ -166,6 +188,12 @@ export class AuthService {
   _resolveAuthState(user, source) {
     if (user && this._reconcileSso(user)) {
       // Local sign-out in progress; onAuthStateChanged(null) will resolve to login.
+      return;
+    }
+    // Sin usuario local pero con sesión SSO: no mostrar el login mientras se canjea el token.
+    if (!user && this._shouldWaitForSso()) {
+      this._setRedirectingMessage('Iniciando sesión...');
+      this._ensureSsoResolution();
       return;
     }
     this.authCheckComplete = true;
