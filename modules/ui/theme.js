@@ -91,6 +91,21 @@ ${danger('.text-red-600')}, ${danger('.hover\\:text-red-600:hover')} { color: ${
 .bg-gray-600 { background-color: ${b.cocoaMuted} !important; }
 .hover\\:bg-gray-700:hover { background-color: ${b.cocoa} !important; }
 
+
+/* ---- Login unificado ---- */
+.nrd-login { background: ${b.cream}; }
+.nrd-login__card { width: 100%; max-width: 24rem; background: #fff; border: 1px solid ${b.border}; border-top: 4px solid ${b.fuchsia}; border-radius: 0.75rem; box-shadow: 0 10px 28px rgb(74 40 24 / 10%); padding: 2rem 1.75rem 1.75rem; text-align: center; }
+.nrd-login__logo { display: block; width: 100%; max-width: 15rem; height: auto; margin: 0 auto 0.75rem; }
+.nrd-login__app { font-size: 1.05rem; font-weight: 600; color: ${b.cocoa}; letter-spacing: 0.02em; margin: 0 0 1.5rem; }
+.nrd-login__form { display: grid; gap: 1rem; text-align: left; }
+.nrd-login__field { display: grid; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: ${b.cocoaMuted}; letter-spacing: 0.04em; text-transform: uppercase; }
+.nrd-login__field input { width: 100%; padding: 0.7rem 0.8rem; font-size: 1rem; font-weight: 400; color: ${b.cocoa}; text-transform: none; letter-spacing: 0; background: #fff; border: 1px solid ${b.borderStrong}; border-radius: 0.375rem; }
+.nrd-login__field input:focus { outline: none; border-color: ${b.fuchsia}; box-shadow: 0 0 0 3px ${b.fuchsiaTintStrong}; }
+.nrd-login__submit { margin-top: 0.25rem; padding: 0.8rem 1rem; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: ${b.fuchsia}; border: 0; border-radius: 0.375rem; cursor: pointer; transition: background-color .15s; }
+.nrd-login__submit:hover { background: ${b.fuchsiaHover}; }
+.nrd-login__error { margin-top: 1rem; padding: 0.6rem 0.8rem; font-size: 0.85rem; color: ${b.danger}; background: #FEF3F2; border: 1px solid #FECDCA; border-radius: 0.375rem; text-align: left; }
+.nrd-login__error.hidden { display: none; }
+
 /* ---- Cabecera y detalles ---- */
 header.sticky { background-color: ${b.fuchsia} !important; border-bottom: 3px solid ${b.gold} !important; }
 input:focus, select:focus, textarea:focus { border-color: ${b.fuchsia} !important; }

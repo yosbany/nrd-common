@@ -15,6 +15,7 @@ import { escapeHtml } from '../utils/dom.js';
 import { showSpinner, hideSpinner, resetSpinner } from '../ui/index.js';
 import { initializeAppHeader } from '../ui/header.js';
 import { getPortalUrl } from '../utils/app-urls.js';
+import { renderUnifiedLogin } from '../ui/login.js';
 import {
   isSsoEnabled,
   readSsoMarker,
@@ -35,7 +36,9 @@ export class AuthService {
     this.unsubscribe = null;
     this._tokenWaitTimeout = null;
     this._safetyTimeout = null;
-    
+
+    // Login unificado de marca: debe ir antes de init(), que enlaza el formulario
+    renderUnifiedLogin();
     this.init();
   }
 

@@ -9,6 +9,7 @@ import * as modal from '../modules/ui/modal.js';
 import * as spinner from '../modules/ui/spinner.js';
 import * as header from '../modules/ui/header.js';
 import * as theme from '../modules/ui/theme.js';
+import * as login from '../modules/ui/login.js';
 import * as format from '../modules/utils/format.js';
 import * as dom from '../modules/utils/dom.js';
 import * as date from '../modules/utils/date.js';
@@ -36,6 +37,7 @@ export * from '../modules/ui/modal.js';
 export * from '../modules/ui/spinner.js';
 export * from '../modules/ui/header.js';
 export * from '../modules/ui/theme.js';
+export * from '../modules/ui/login.js';
 export * from '../modules/utils/format.js';
 export * from '../modules/utils/dom.js';
 export * from '../modules/utils/date.js';
@@ -79,6 +81,7 @@ const NRDCommon = {
   setupInstallButton: header.setupInstallButton,
   initializeAppHeader: header.initializeAppHeader,
   applyBrandTheme: theme.applyBrandTheme,
+  renderUnifiedLogin: login.renderUnifiedLogin,
   BRAND: theme.BRAND,
   
   // Utils
