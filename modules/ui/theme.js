@@ -106,14 +106,6 @@ ${danger('.text-red-600')}, ${danger('.hover\\:text-red-600:hover')} { color: ${
 .nrd-login__error { margin-top: 1rem; padding: 0.6rem 0.8rem; font-size: 0.85rem; color: ${b.danger}; background: #FEF3F2; border: 1px solid #FECDCA; border-radius: 0.375rem; text-align: left; }
 .nrd-login__error.hidden { display: none; }
 
-/* ---- Legibilidad: texto mínimo de marca (Costos y otras vistas usaban text-xs en contenido) ---- */
-.text-xs { font-size: 0.875rem !important; line-height: 1.25rem !important; }
-.text-sm { font-size: 0.9375rem !important; line-height: 1.375rem !important; }
-@media (min-width: 640px) {
-  .sm\:text-xs { font-size: 0.9375rem !important; line-height: 1.375rem !important; }
-  .sm\:text-sm { font-size: 1rem !important; line-height: 1.5rem !important; }
-}
-
 /* ---- Cabecera y detalles ---- */
 header.sticky { background-color: ${b.fuchsia} !important; border-bottom: 3px solid ${b.gold} !important; }
 input:focus, select:focus, textarea:focus { border-color: ${b.fuchsia} !important; }
